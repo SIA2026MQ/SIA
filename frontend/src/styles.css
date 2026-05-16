@@ -1,0 +1,319 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:wght@400;500;600;700&display=swap");
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * SIA — Shifting Into Awareness design tokens.
+ * All colors converted to oklch from the brand hex palette.
+ *  cream       #F9F5E9  → oklch(0.967 0.025 90)
+ *  peach       #FFD1BF  → oklch(0.881 0.06 40)
+ *  purple      #43006B  → oklch(0.247 0.165 305)
+ *  purple-light#7B3FA0  → oklch(0.43 0.18 308)
+ *  purple-pale #F3E8FB  → oklch(0.94 0.035 310)
+ *  gold        #C9A84C  → oklch(0.74 0.13 90)
+ *  text-dark   #1A0A2E  → oklch(0.16 0.07 290)
+ *  text-mid    #4A3060  → oklch(0.34 0.09 305)
+ */
+
+@theme inline {
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* SIA semantic tokens */
+  --color-cream: var(--cream);
+  --color-peach: var(--peach);
+  --color-purple: var(--purple);
+  --color-purple-light: var(--purple-light);
+  --color-purple-pale: var(--purple-pale);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-text-dark: var(--text-dark);
+  --color-text-mid: var(--text-mid);
+
+  --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Brand — refreshed to match the SIA logo (magenta lotus + gold + deep purple text) */
+  --cream: oklch(0.972 0.018 80);            /* soft warm cream */
+  --peach: oklch(96.173% 0.0055 30.069);             /* gentler peach */
+  --purple: oklch(49.122% 0.25073 305.858);            /* magenta-pink (logo lotus) — primary */
+  --purple-light: oklch(0.72 0.24 345);      /* lighter magenta hover */
+  --purple-pale: oklch(0.96 0.035 340);      /* magenta tint */
+  --gold: oklch(0.78 0.16 82);               /* warm gold accent */
+  --gold-deep: oklch(0.7 0.18 75);           /* deeper gold */
+  --text-dark: oklch(0.22 0.09 305);         /* deep aubergine for text */
+  --text-mid: oklch(0.42 0.08 320);          /* warm violet-grey */
+
+  /* Map shadcn semantic tokens onto SIA palette */
+  --background: var(--cream);
+  --foreground: var(--text-dark);
+  --card: oklch(79.082% 0.07095 18.705);
+  --card-foreground: var(--text-dark);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--text-dark);
+  --primary: var(--purple);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: var(--peach);
+  --secondary-foreground: var(--text-dark);
+  --muted: var(--purple-pale);
+  --muted-foreground: var(--text-mid);
+  --accent: var(--gold);
+  --accent-foreground: var(--text-dark);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.62 0.27 340 / 14%);
+  --input: oklch(0.62 0.27 340 / 18%);
+  --ring: var(--purple);
+
+  --shadow-card: 0 6px 24px -10px oklch(0.62 0.27 340 / 0.25);
+  --shadow-card-lifted: 0 22px 50px -14px oklch(0.62 0.27 340 / 0.32);
+  --shadow-glow: 0 0 0 1px oklch(0.62 0.27 340 / 0.15), 0 14px 44px -12px oklch(0.72 0.24 345 / 0.45);
+
+  /* Gradients & decoration */
+  --gradient-brand: linear-gradient(135deg, oklch(0.62 0.27 340) 0%, oklch(0.78 0.16 82) 100%);
+  --gradient-soft: linear-gradient(180deg, var(--cream) 0%, var(--purple-pale) 100%);
+}
+
+.dark {
+  /* SIA is a light, warm brand — keep dark optional */
+  --background: var(--text-dark);
+  --foreground: var(--cream);
+  --card: oklch(0.22 0.08 295);
+  --card-foreground: var(--cream);
+  --primary: var(--gold);
+  --primary-foreground: var(--text-dark);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--gold);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Lenis smooth scroll */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-serif);
+    color: var(--color-purple);
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background-color: var(--color-purple);
+    color: var(--color-cream);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-purple);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+@layer utilities {
+  .font-serif { font-family: var(--font-serif); }
+  .font-sans { font-family: var(--font-sans); }
+
+  .text-display {
+    font-family: var(--font-serif);
+    font-size: clamp(2.5rem, 5vw + 1rem, 4rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+  }
+
+  .btn-label {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .glass-cream {
+    background-color: oklch(0.967 0.025 90 / 0.85);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+  }
+
+  .gold-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  }
+
+  .hover-lift {
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-lifted);
+  }
+
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-card-lifted { box-shadow: var(--shadow-card-lifted); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+
+  .reveal-init {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  .bg-gradient-brand { background-image: var(--gradient-brand); }
+  .bg-gradient-soft { background-image: var(--gradient-soft); }
+  .text-gradient-brand {
+    background-image: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .ring-gold { box-shadow: 0 0 0 1px var(--color-gold), 0 0 0 4px oklch(0.78 0.16 82 / 0.18); }
+}
+
+/* Floating petals & decorative motion */
+@keyframes petal-drift {
+  0% { transform: translate3d(0,0,0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.7; }
+  100% { transform: translate3d(40px, 110vh, 0) rotate(360deg); opacity: 0; }
+}
+.petal {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: petal-drift linear infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.43 0.18 308 / 0.35); }
+  50% { box-shadow: 0 0 0 18px oklch(0.43 0.18 308 / 0); }
+}
+.pulse-glow { animation: pulse-glow 2.4s ease-out infinite; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97); }
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.spin-slow { animation: spin-slow 60s linear infinite; }
+
+@keyframes marquee-x {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Custom cursor */
+
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .petal, .spin-slow, .pulse-glow { display: none !important; }
+}
+
+@import "tailwindcss";
+
+@layer utilities {
+  /* Animation for Left to Right movement used in Logo and Blog Marquees */
+  @keyframes marquee-reverse {
+    0% { transform: translateX(-50%); }
+    100% { transform: translateX(0%); }
+  }
+
+  .animate-marquee-reverse {
+    animation: marquee-reverse 40s linear infinite;
+  }
+
+  /* Glow pulse for the Hero Image */
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 oklch(0.62 0.27 340 / 0.35); }
+    50% { box-shadow: 0 0 0 18px oklch(0.62 0.27 340 / 0); }
+  }
+  .pulse-glow { animation: pulse-glow 2.4s ease-out infinite; }
+}
+
+@layer base {
+  /* ... other base styles ... */
+  
+  ::selection {
+    background-color: var(--color-purple);
+    color: var(--color-cream);
+  }
+
+  /* Default browser focus states are good for accessibility */
+  :focus-visible {
+    outline: 2px solid var(--color-purple);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
