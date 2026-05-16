@@ -10,11 +10,8 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Check if config exists
 if (!firebaseConfig.apiKey) {
-  throw new Error(
-    "Firebase config missing. Please set VITE_FIREBASE_API_KEY in .env.local"
-  );
+  throw new Error("Missing Firebase config. Check .env.local");
 }
 
 if (!getApps().length) {

@@ -30,7 +30,7 @@ app.use('/api', limiter);
 
 // 3. SECURE CORS CONFIGURATION (Fixes the login loop!)
 app.use(cors({
-  origin: ['http://localhost:8080'], // Explicitly trust your Vite frontend port
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'], // Explicitly trust your Vite frontend port
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'], // Allow the Bearer token
   credentials: true,

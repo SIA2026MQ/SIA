@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, googleProvider } from "@/lib/firebase";
-import { signInWithRedirect, signOut, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { api } from "@/lib/api";
 
 export type DbUser = {
@@ -26,13 +26,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true);
       if (firebaseUser) {
         try {
-          // This call hits the middleware we wrote in Step 2, triggering the DB creation
           const response = await api.getMe();
           setDbUser(response.user);
-        } catch (error) {
-          console.error("Backend handshake failed:", error);
+        } catch (err) {
+          console.error("Failed to sync user with backend:", err);
           setDbUser(null);
         }
       } else {
@@ -40,12 +40,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
   const signInWithGoogle = async () => {
-    await signInWithRedirect(auth, googleProvider);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      // The popup will return, and onAuthStateChanged will trigger automatically
+      // No need to manually navigate
+    } catch (error) {
+      console.error("Google sign-in popup error:", error);
+      throw error;
+    }
   };
 
   const logout = async () => {

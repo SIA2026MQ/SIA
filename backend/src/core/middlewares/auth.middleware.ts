@@ -2,13 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import { firebaseAdmin } from '../services/firebase.service';
 import { prisma } from '../services/db.service';
 
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
+
 export interface AuthRequest extends Request {
   user?: any;
 }
 
-// -----------------------------------------------------------------------------
-// 1. Authenticate Firebase JWT & Sync to PostgreSQL
-// -----------------------------------------------------------------------------
 export const authenticateJWT = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const authHeader = req.headers.authorization;
 
@@ -24,35 +23,44 @@ export const authenticateJWT = async (req: AuthRequest, res: Response, next: Nex
     const { uid, email, name } = decodedToken;
 
     if (!email) {
-      res.status(400).json({ error: 'Token missing email payload' }); return;
+      res.status(400).json({ error: 'Token missing email' });
+      return;
     }
 
-    // 1. Look for the user using their true OAuth2 ID
+    // Determine role based on admin email
+    const role = email === ADMIN_EMAIL ? 'ADMIN' : 'USER';
+
     let user = await prisma.user.findUnique({ where: { firebaseUid: uid } });
 
-    // 2. The Handshake Logic
     if (!user) {
-      // Check if they are a legacy user (they have an account, but no Google ID yet)
-      const legacyUser = await prisma.user.findUnique({ where: { email } });
-
-      if (legacyUser) {
-        // MERGE ACCOUNT: Attach the new Google ID to the old database row
+      // Try to find by email (legacy or previous signup without uid)
+      const existing = await prisma.user.findUnique({ where: { email } });
+      if (existing) {
+        // Merge: update existing user with firebaseUid and ensure correct role
         user = await prisma.user.update({
           where: { email },
-          data: { firebaseUid: uid }
+          data: { firebaseUid: uid, role },
         });
-        console.log(`[AUTH] Legacy user merged with Google OAuth: ${email}`);
+        console.log(`[AUTH] Legacy user merged: ${email}`);
       } else {
-        // NEW USER: Create them from scratch
+        // Create new user
         user = await prisma.user.create({
           data: {
             firebaseUid: uid,
-            email: email,
-            name: name || 'Sincere Seeker',
+            email,
+            name: name || 'Seeker',
+            role,
           },
         });
-        console.log(`[AUTH] New user provisioned: ${email}`);
+        console.log(`[AUTH] New user created: ${email} as ${role}`);
       }
+    } else if (user.role !== role) {
+      // Upgrade to admin if email matches
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role },
+      });
+      console.log(`[AUTH] User role updated to ${role}: ${email}`);
     }
 
     req.user = user;
@@ -63,13 +71,9 @@ export const authenticateJWT = async (req: AuthRequest, res: Response, next: Nex
   }
 };
 
-// -----------------------------------------------------------------------------
-// 2. Check for Admin Role (Fixes the Server Crash)
-// -----------------------------------------------------------------------------
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  // We check if the user object exists on the request and if their role is ADMIN
   if (req.user && req.user.role === 'ADMIN') {
-    next(); // Let them pass to the route controller
+    next();
   } else {
     res.status(403).json({ error: 'Forbidden: Admin access required' });
   }
