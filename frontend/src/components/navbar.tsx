@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Menu, X, ShoppingBag, User, LogOut, ChevronDown } from "lucide-react";
+import { Menu, X, ShoppingBag, User, LogOut, ChevronDown, LayoutDashboard } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/context/AuthContext";
@@ -36,8 +36,6 @@ export function Navbar() {
 
   const location = useLocation();
   const { count, setOpen: setCartOpen } = useCart();
-
-  // ✅ FIX: Changed 'user' to 'dbUser' to match our industrial AuthContext
   const { dbUser, logout, loading } = useAuth();
 
   useEffect(() => {
@@ -62,6 +60,9 @@ export function Navbar() {
     setActiveDesktopMenu(null);
     setMobileExpanded(null);
   }, [location.pathname]);
+
+  // Admin identification based on the required email
+  const isAdmin = dbUser?.email === "siawebteam@gmail.com";
 
   return (
     <header
@@ -113,7 +114,6 @@ export function Navbar() {
           </button>
 
           <div className="hidden sm:block relative" ref={dropdownRef}>
-            {/* ✅ FIX: Checking dbUser instead of user */}
             {!loading && dbUser ? (
               <div className="relative">
                 <button
@@ -121,7 +121,6 @@ export function Navbar() {
                   className="flex items-center gap-2 px-6 py-2 border border-[#4B0082]/30 rounded-full text-[#4B0082] text-[13px] font-bold uppercase tracking-widest hover:bg-[#4B0082]/5 transition-all"
                 >
                   <User className="h-4 w-4" />
-                  {/* ✅ FIX: pulling name from dbUser */}
                   <span>{dbUser.name ? dbUser.name.split(' ')[0].toUpperCase() : "SIA"}</span>
                 </button>
 
@@ -135,26 +134,39 @@ export function Navbar() {
                     >
                       <div className="p-4 flex items-center gap-3">
                         <div className="h-16 w-16 shrink-0 rounded-full bg-[#1c1d1f] flex items-center justify-center text-white text-2xl font-bold">
-                          {/* ✅ FIX: pulling initials from dbUser */}
                           {dbUser.name ? dbUser.name.split(' ').map(n => n[0]).join('').toUpperCase() : "S"}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          {/* ✅ FIX: pulling info from dbUser */}
                           <span className="font-bold text-[#1c1d1f] text-lg truncate">{dbUser.name}</span>
                           <span className="text-gray-500 text-sm truncate">{dbUser.email}</span>
                         </div>
                       </div>
-                      <div className="border-t border-gray-100 py-2">
-                        <Link to="/my-learning" className="block px-4 py-2 text-[#1c1d1f] hover:text-[#4B0082]">My learning</Link>
-                        <button onClick={() => { setCartOpen(true); setMenuUser(false); }} className="block w-full text-left px-4 py-2 text-[#1c1d1f] hover:text-[#4B0082]">My cart</button>
-                        <Link to="/wishlist" className="block px-4 py-2 text-[#1c1d1f] hover:text-[#4B0082]">Wishlist</Link>
-                      </div>
-                      <div className="border-t border-gray-100 py-2 text-sm">
-                        <Link to="/account" className="block px-4 py-2 text-[#1c1d1f] hover:text-[#4B0082]">Account settings</Link>
-                        <button onClick={logout} className="flex items-center w-full px-4 py-2 text-red-600 font-bold hover:bg-red-50 mt-1">
-                          <LogOut className="h-4 w-4 mr-2" /> Logout
-                        </button>
-                      </div>
+
+                      {/* Admin dropdown (based on email) */}
+                      {isAdmin ? (
+                        <div className="border-t border-gray-100 py-2">
+                          <Link to="/admin" onClick={() => setMenuUser(false)} className="block px-4 py-2 text-[#1c1d1f] hover:text-[#4B0082]">
+                            <LayoutDashboard className="inline h-4 w-4 mr-2" /> Admin Dashboard
+                          </Link>
+                          <button onClick={logout} className="flex items-center w-full px-4 py-2 text-red-600 font-bold hover:bg-red-50 mt-1">
+                            <LogOut className="h-4 w-4 mr-2" /> Logout
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="border-t border-gray-100 py-2">
+                            <Link to="/my-learning" className="block px-4 py-2 text-[#1c1d1f] hover:text-[#4B0082]">My learning</Link>
+                            <button onClick={() => { setCartOpen(true); setMenuUser(false); }} className="block w-full text-left px-4 py-2 text-[#1c1d1f] hover:text-[#4B0082]">My cart</button>
+                            <Link to="/wishlist" className="block px-4 py-2 text-[#1c1d1f] hover:text-[#4B0082]">Wishlist</Link>
+                          </div>
+                          <div className="border-t border-gray-100 py-2 text-sm">
+                            <Link to="/account" className="block px-4 py-2 text-[#1c1d1f] hover:text-[#4B0082]">Account settings</Link>
+                            <button onClick={logout} className="flex items-center w-full px-4 py-2 text-red-600 font-bold hover:bg-red-50 mt-1">
+                              <LogOut className="h-4 w-4 mr-2" /> Logout
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -172,6 +184,7 @@ export function Navbar() {
         </div>
       </div>
 
+      {/* Mobile Menu */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -211,15 +224,26 @@ export function Navbar() {
             </div>
 
             <div className="p-6 border-t bg-gray-50">
-              {/* ✅ FIX: Checking dbUser for mobile menu too */}
               {!loading && dbUser ? (
                 <div className="space-y-3">
-                  <Link
-                    to="/my-learning"
-                    className="flex items-center justify-center w-full py-3 bg-white border-2 border-[#4B0082] text-[#4B0082] hover:bg-[#4B0082] hover:text-white transition-colors rounded-full font-bold"
-                  >
-                    My Learning
-                  </Link>
+                  {/* Admin sees Admin Dashboard, regular user sees My Learning */}
+                  {isAdmin ? (
+                    <Link
+                      to="/admin"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center justify-center w-full py-3 bg-white border-2 border-[#4B0082] text-[#4B0082] hover:bg-[#4B0082] hover:text-white transition-colors rounded-full font-bold"
+                    >
+                      Admin Dashboard
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/my-learning"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center justify-center w-full py-3 bg-white border-2 border-[#4B0082] text-[#4B0082] hover:bg-[#4B0082] hover:text-white transition-colors rounded-full font-bold"
+                    >
+                      My Learning
+                    </Link>
+                  )}
 
                   <button
                     onClick={logout}

@@ -4,7 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, GraduationCap, CalendarDays, FileText, Tag, Plus, Pencil, Trash2, X, RotateCcw, Sparkles, TrendingUp, Users, ShoppingBag, Search, UploadCloud, Loader2, Film
 } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+
+// ✅ FIX: Import useAuth from the correct path
+import { useAuth } from "@/context/AuthContext";
+
 import { useCourses, useEvents, useBlogs, useCoupons, adminApi, formatPrice, priceToNumber, type Coupon } from "@/lib/admin-store";
 import type { SIACourse, SIAEvent, BlogPost } from "@/lib/sia-data";
 import { cn } from "@/lib/utils";
@@ -21,149 +24,9 @@ export const Route = createFileRoute("/admin")({
 
 type Tab = "dashboard" | "courses" | "events" | "blogs" | "coupons";
 
-function AdminPage() {
-  const { user, isAdmin, hydrated } = useAuth();
-  const [tab, setTab] = useState<Tab>("dashboard");
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (hydrated && !isAdmin) {
-      navigate({ to: "/login" });
-    }
-  }, [hydrated, isAdmin, navigate]);
-
-  if (!hydrated || !isAdmin) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-[var(--color-cream)]">
-        <p className="text-[var(--color-text-mid)]">Verifying access...</p>
-      </div>
-    );
-  }
-
-  const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "courses", label: "Courses", icon: GraduationCap },
-    { id: "events", label: "Events", icon: CalendarDays },
-    { id: "blogs", label: "Blog Posts", icon: FileText },
-    { id: "coupons", label: "Coupons", icon: Tag },
-  ];
-
-  return (
-    <div className="min-h-screen bg-[var(--color-cream)] pt-20">
-      <div className="border-b border-[#600694]/10 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 lg:px-10 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-          <div>
-            <p className="btn-label text-[var(--color-gold-deep)]">Admin</p>
-            <h1 className="font-serif text-3xl text-[#600694]">Control Centre</h1>
-            <p className="mt-1 text-sm text-[var(--color-text-mid)]">
-              Welcome back, <span className="font-semibold text-[#600694]">{user?.name}</span>
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => { if (confirm("Reset all content to original seed data?")) adminApi.resetAll(); }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#600694]/20 bg-white px-4 py-2 text-xs font-semibold text-[#600694] hover:bg-[#600694]/10 transition-colors"
-            >
-              <RotateCcw className="h-3.5 w-3.5" /> Reset Data
-            </button>
-            <Link to="/" className="inline-flex items-center gap-1.5 rounded-full bg-[#600694] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white hover:bg-[#600694]/90 transition-colors">
-              View Site →
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 py-8 grid gap-8 lg:grid-cols-[220px_1fr]">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <nav className="flex lg:flex-col gap-1.5 overflow-x-auto pb-2 lg:pb-0">
-            {tabs.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={cn(
-                    "flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all",
-                    active ? "bg-[#600694] text-white shadow-card" : "text-[var(--color-text-dark)] hover:bg-[#600694]/10",
-                  )}
-                >
-                  <Icon className="h-4 w-4" /> {t.label}
-                </button>
-              );
-            })}
-          </nav>
-        </aside>
-
-        <main>
-          <AnimatePresence mode="wait">
-            <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
-              {tab === "dashboard" && <DashboardPanel onNavigate={setTab} />}
-              {tab === "courses" && <CoursesPanel />}
-              {tab === "events" && <EventsPanel />}
-              {tab === "blogs" && <BlogsPanel />}
-              {tab === "coupons" && <CouponsPanel />}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-      </div>
-    </div>
-  );
-}
-
-/* ================== SHARED CALENDAR COMPONENT ================== */
-function MiniCalendar({ events, onDateClick, animated = false }: { events: any[], onDateClick?: (d: string) => void, animated?: boolean }) {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1).getDay();
-
-  const days = [];
-  for (let i = 0; i < firstDay; i++) days.push(null);
-  for (let i = 1; i <= daysInMonth; i++) days.push(i);
-
-  const monthName = today.toLocaleString('default', { month: 'long' });
-
-  const hasEvent = (day: number | null) => {
-    if (!day) return false;
-    return events.some(e => {
-      if (!e.date) return false;
-      const eDate = new Date(e.date);
-      return eDate.getDate() === day && eDate.getMonth() === month && eDate.getFullYear() === year && !e.past;
-    });
-  };
-
-  return (
-    <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#600694]/10 w-full">
-      <div className="text-center font-serif text-lg text-[#600694] mb-4">{monthName} {year}</div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-[var(--color-text-mid)] mb-2">
-        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d}>{d}</div>)}
-      </div>
-      <div className="grid grid-cols-7 gap-1 text-sm">
-        {days.map((d, i) => {
-          const isEvent = hasEvent(d);
-          return (
-            <div
-              key={i}
-              onClick={() => d && onDateClick && onDateClick(`${monthName} ${d}, ${year}`)}
-              className={cn(
-                "h-8 w-8 flex items-center justify-center rounded-full mx-auto transition-all",
-                !d ? "" : onDateClick ? "cursor-pointer hover:bg-[#600694]/10" : "",
-                isEvent ? "bg-[#600694] text-white shadow-md font-bold" : "text-[var(--color-text-dark)]",
-                isEvent && animated ? "animate-pulse ring-2 ring-[#600694]/50" : ""
-              )}
-            >
-              {d || ""}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-/* ================== DASHBOARD ================== */
+// ----------------------------------------------------------------------------
+// DashboardPanel defined BEFORE AdminPage so it's definitely hoisted
+// ----------------------------------------------------------------------------
 function DashboardPanel({ onNavigate }: { onNavigate: (t: Tab) => void }) {
   const courses = useCourses();
   const events = useEvents();
@@ -236,7 +99,153 @@ function DashboardPanel({ onNavigate }: { onNavigate: (t: Tab) => void }) {
   );
 }
 
-/* ================== COURSES ================== */
+function AdminPage() {
+  const { dbUser, loading } = useAuth();
+  const [tab, setTab] = useState<Tab>("dashboard");
+  const navigate = useNavigate();
+
+  const isAdmin = dbUser?.email === "siawebteam@gmail.com";
+  const hydrated = !loading;
+
+  useEffect(() => {
+    if (hydrated && !isAdmin) {
+      navigate({ to: "/login" });
+    }
+  }, [hydrated, isAdmin, navigate]);
+
+  if (!hydrated || !isAdmin) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[var(--color-cream)]">
+        <p className="text-[var(--color-text-mid)]">Verifying access...</p>
+      </div>
+    );
+  }
+
+  const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "courses", label: "Courses", icon: GraduationCap },
+    { id: "events", label: "Events", icon: CalendarDays },
+    { id: "blogs", label: "Blog Posts", icon: FileText },
+    { id: "coupons", label: "Coupons", icon: Tag },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[var(--color-cream)] pt-20">
+      <div className="border-b border-[#600694]/10 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 lg:px-10 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+          <div>
+            <p className="btn-label text-[var(--color-gold-deep)]">Admin</p>
+            <h1 className="font-serif text-3xl text-[#600694]">Control Centre</h1>
+            <p className="mt-1 text-sm text-[var(--color-text-mid)]">
+              Welcome back, <span className="font-semibold text-[#600694]">{dbUser?.name}</span>
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { if (confirm("Reset all content to original seed data?")) adminApi.resetAll(); }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#600694]/20 bg-white px-4 py-2 text-xs font-semibold text-[#600694] hover:bg-[#600694]/10 transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Reset Data
+            </button>
+            <Link to="/" className="inline-flex items-center gap-1.5 rounded-full bg-[#600694] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white hover:bg-[#600694]/90 transition-colors">
+              View Site →
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 py-8 grid gap-8 lg:grid-cols-[220px_1fr]">
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <nav className="flex lg:flex-col gap-1.5 overflow-x-auto pb-2 lg:pb-0">
+            {tabs.map((t) => {
+              const Icon = t.icon;
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all",
+                    active ? "bg-[#600694] text-white shadow-card" : "text-[var(--color-text-dark)] hover:bg-[#600694]/10",
+                  )}
+                >
+                  <Icon className="h-4 w-4" /> {t.label}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <main>
+          <AnimatePresence mode="wait">
+            <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+              {tab === "dashboard" && <DashboardPanel onNavigate={setTab} />}
+              {tab === "courses" && <CoursesPanel />}
+              {tab === "events" && <EventsPanel />}
+              {tab === "blogs" && <BlogsPanel />}
+              {tab === "coupons" && <CouponsPanel />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Rest of the components (unchanged except for safe image handling)
+// ----------------------------------------------------------------------------
+function MiniCalendar({ events, onDateClick, animated = false }: { events: any[], onDateClick?: (d: string) => void, animated?: boolean }) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+
+  const days = [];
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
+  const monthName = today.toLocaleString('default', { month: 'long' });
+
+  const hasEvent = (day: number | null) => {
+    if (!day) return false;
+    return events.some(e => {
+      if (!e.date) return false;
+      const eDate = new Date(e.date);
+      return eDate.getDate() === day && eDate.getMonth() === month && eDate.getFullYear() === year && !e.past;
+    });
+  };
+
+  return (
+    <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#600694]/10 w-full">
+      <div className="text-center font-serif text-lg text-[#600694] mb-4">{monthName} {year}</div>
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-[var(--color-text-mid)] mb-2">
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d}>{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-sm">
+        {days.map((d, i) => {
+          const isEvent = hasEvent(d);
+          return (
+            <div
+              key={i}
+              onClick={() => d && onDateClick && onDateClick(`${monthName} ${d}, ${year}`)}
+              className={cn(
+                "h-8 w-8 flex items-center justify-center rounded-full mx-auto transition-all",
+                !d ? "" : onDateClick ? "cursor-pointer hover:bg-[#600694]/10" : "",
+                isEvent ? "bg-[#600694] text-white shadow-md font-bold" : "text-[var(--color-text-dark)]",
+                isEvent && animated ? "animate-pulse ring-2 ring-[#600694]/50" : ""
+              )}
+            >
+              {d || ""}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function CoursesPanel() {
   const courses = useCourses();
   const [editing, setEditing] = useState<SIACourse | null>(null);
@@ -252,7 +261,7 @@ function CoursesPanel() {
       onAdd={() =>
         setEditing({
           id: `c-${Date.now()}`, title: "", category: "practices", tag: "", description: "", duration: "",
-          lessons: 0, price: "Free", rating: 5, image: "", 
+          lessons: 0, price: "Free", rating: 5, image: "",
           // @ts-ignore
           curriculum: []
         })
@@ -388,7 +397,6 @@ function CourseForm({ initial, onSave }: { initial: SIACourse; onSave: (c: SIACo
   );
 }
 
-/* ================== EVENTS ================== */
 function EventsPanel() {
   const events = useEvents();
   const [editing, setEditing] = useState<SIAEvent | null>(null);
@@ -405,7 +413,6 @@ function EventsPanel() {
         <ItemTable items={filtered} getKey={(e) => e.id} columns={[{ label: "Event", render: (e) => <CellWithImage image={e.image} title={e.title} sub={e.type} /> }, { label: "Date", render: (e) => <span className="text-[var(--color-text-mid)]">{e.date}</span> }, { label: "Price", render: (e) => <span className="font-semibold text-[#600694]">{e.price}</span> }]} onEdit={(e) => setEditing(e)} onDelete={(e) => { if (confirm(`Delete "${e.title}"?`)) adminApi.deleteEvent(e.id); }} />
       </PanelShell>
       
-      {/* Calendar View for Admin */}
       <aside className="sticky top-24">
         <h3 className="font-serif text-xl text-[#600694] mb-4 flex items-center gap-2">
           <CalendarDays className="h-5 w-5" /> Schedule Event
@@ -447,7 +454,6 @@ function EventForm({ initial, onSave }: { initial: SIAEvent; onSave: (e: SIAEven
   );
 }
 
-/* ================== BLOGS ================== */
 function BlogsPanel() {
   const blogs = useBlogs();
   const [editing, setEditing] = useState<BlogPost | null>(null);
@@ -487,7 +493,6 @@ function BlogForm({ initial, onSave }: { initial: BlogPost; onSave: (b: BlogPost
   );
 }
 
-/* ================== COUPONS ================== */
 function CouponsPanel() {
   const coupons = useCoupons();
   const [editing, setEditing] = useState<Coupon | null>(null);
@@ -518,7 +523,6 @@ function CouponForm({ initial, onSave }: { initial: Coupon; onSave: (c: Coupon) 
   );
 }
 
-/* ================== SHARED PRIMITIVES ================== */
 function PanelShell({ title, onAdd, search, setSearch, children }: { title: string; onAdd: () => void; search: string; setSearch: (s: string) => void; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-white shadow-card overflow-hidden">
@@ -558,6 +562,7 @@ function ItemTable<T>({ items, getKey, columns, onEdit, onDelete }: { items: T[]
   );
 }
 
+// ✅ FIX: Guard against empty image src
 function CellWithImage({ image, title, sub }: { image: string; title: string; sub: string }) {
   return (
     <div className="flex items-center gap-3 min-w-0">
