@@ -27,35 +27,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
-      
+
       if (firebaseUser) {
         try {
-          // 1. Try to find the user in your database
+          // This single call hits GET /api/auth/me
+          // Your Node.js middleware handles the creation/verification automatically!
           const response = await api.getMe();
           setDbUser(response.user);
         } catch (err) {
-          console.log("New user detected. Falling back to Google Profile data.");
-          
-          // 2. CRITICAL FIX: If they are a new user (Sign Up), use their Google data!
-          // This ensures the Navbar updates instantly with their name.
-          setDbUser({
-            id: firebaseUser.uid,
-            firebaseUid: firebaseUser.uid,
-            name: firebaseUser.displayName || "New User",
-            email: firebaseUser.email || "",
-            role: "USER",
-          });
-          
-          // Note: In the future, you can add a call here to save this new user to your database:
-          // await api.createUser({ email: firebaseUser.email, name: firebaseUser.displayName });
+          console.error("Database sync failed, logging out:", err);
+          // If the DB call fails, we sign them out of Firebase to prevent ghost sessions
+          await signOut(auth);
+          setDbUser(null);
         }
       } else {
         setDbUser(null);
       }
-      
+
       setLoading(false);
     });
-    
+
     return unsubscribe;
   }, []);
 
