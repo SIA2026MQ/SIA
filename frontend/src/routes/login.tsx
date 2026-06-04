@@ -1,82 +1,90 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
-import { Lotus } from "@/components/decorative";
-import logo from "@/assets/sia-logo.jpg";
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { z } from "zod";
+import { AnimatedPage } from "@/components/common/AnimatedPage";
+import { useAuth } from "@/context/AuthContext"; // ADDED
 
-type LoginSearch = { redirect?: string };
-
-export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
-    redirect: (search.redirect as string) || "/",
-  }),
-  head: () => ({
-    meta: [{ title: "Sign In · Shifting Into Awareness" }],
-  }),
-  component: LoginPage,
+const loginSchema = z.object({
+  email: z.string().trim().email("Enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-function LoginPage() {
-  const { signInWithGoogle, dbUser, loading } = useAuth();
+export default function LoginPage() {
   const navigate = useNavigate();
-  const { redirect } = Route.useSearch();
+  const [searchParams] = useSearchParams(); // ADDED
+  const redirectTo = searchParams.get("redirectTo") || "/"; // ADDED
+  
+  const { signInWithGoogle } = useAuth(); // ADDED
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    // When user is loaded and not loading, redirect
-    if (!loading && dbUser) {
-      navigate({ to: redirect, replace: true });
-    }
-  }, [dbUser, loading, navigate, redirect]);
-
-  const handleGoogleSignIn = async () => {
+  const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle();
-      // AuthProvider will update dbUser, which triggers redirect above
-    } catch (error) {
-      console.error("Sign-in failed", error);
+      navigate(redirectTo); // Redirect back to cart (or home)
+    } catch (err) {
+      setError("Failed to sign in with Google.");
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--color-cream)]">
-        <div className="h-12 w-12 border-4 border-[#600694] border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-[#600694] font-medium">Authenticating...</p>
-      </div>
-    );
-  }
-
   return (
-    <section className="relative min-h-screen overflow-hidden bg-gradient-soft pt-28 pb-16">
-      {/* ... your existing JSX, same as before ... */}
-      <div className="relative mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-2 lg:items-center">
-        {/* Left side – same */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="hidden lg:flex flex-col items-start">
-          <img src={logo} alt="SIA Logo" className="h-20 w-auto" />
-          <h1 className="mt-8 font-serif italic text-5xl text-[var(--color-purple)] leading-tight">Welcome, <br />sincere seeker.</h1>
-          <p className="mt-6 text-lg text-[var(--color-text-mid)] max-w-md leading-relaxed">Sign in to enrol in courses, register for retreats, and follow the journey.</p>
-          <div className="mt-10 rounded-2xl border border-[var(--color-gold)]/30 bg-white/70 backdrop-blur p-5 text-sm shadow-card">
-            <p className="flex items-center gap-2 font-semibold text-[var(--color-purple)]"><Sparkles className="h-4 w-4 text-[var(--color-gold)]" /> Admin demo access</p>
-            <p className="mt-2 text-[var(--color-text-mid)]">Email: <code className="font-mono text-[var(--color-purple)]">{import.meta.env.VITE_ADMIN_EMAIL || "admin@shiftingintoawareness.com"}</code></p>
-          </div>
-        </motion.div>
-
-        {/* Right side – Google Sign-In */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="relative rounded-3xl bg-white p-8 sm:p-10 shadow-card-lifted text-center">
-          <Lotus className="absolute -top-8 left-1/2 -translate-x-1/2 h-16 w-16 text-[var(--color-purple)] lg:hidden" />
-          <h2 className="font-serif text-3xl text-[var(--color-purple)]">Welcome back</h2>
-          <p className="mt-1 text-sm text-[var(--color-text-mid)]">Sign in with your Google account to continue.</p>
-          <div className="mt-8 space-y-4">
-            <button onClick={handleGoogleSignIn} className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-white border border-[var(--color-purple)]/30 px-6 py-3.5 text-[var(--color-text-dark)] font-medium hover:bg-[var(--color-purple-pale)] transition-colors shadow-sm cursor-pointer">
-              <svg className="h-5 w-5" viewBox="0 0 24 24">...</svg>
-              Sign in with Google
+    <AnimatedPage>
+      <section className="section-odd pt-32 pb-16 min-h-[80vh]">
+        <div className="sia-container max-w-xl">
+          <div className="sia-card">
+            <h1 className="sia-h2">Welcome Back</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {redirectTo === "/cart" 
+                ? "Please log in to complete your purchase." 
+                : "Login to manage your courses and checkout faster."}
+            </p>
+            
+            {/* Google Sign-in Button */}
+            <button onClick={handleGoogleLogin} className="sia-button-outline w-full mt-6 bg-white flex justify-center gap-2">
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="h-5 w-5" alt="Google" />
+              Continue with Google
             </button>
+
+            <div className="relative my-6 text-center">
+              <span className="bg-card px-2 text-xs text-muted-foreground relative z-10">OR</span>
+              <div className="absolute top-1/2 left-0 w-full border-t border-border"></div>
+            </div>
+
+            <form
+  className="space-y-4"
+  onSubmit={(event) => {
+    event.preventDefault();
+    setError("");
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Invalid credentials");
+      return;
+    }
+
+    // 🚨 Check if it is the Admin logging in from the normal page 🚨
+    if (email === "admin@sia.com" && password === "Admin@123") {
+      window.localStorage.setItem("sia-admin-auth", "true");
+      navigate("/admin");
+      return; // Stop execution here so normal login doesn't run
+    }
+
+    // --- Normal User Login Simulation ---
+    window.localStorage.setItem("sia-user", parsed.data.email);
+    window.dispatchEvent(new Event("sia-auth-updated"));
+    navigate(redirectTo); 
+  }}
+>
+              <input name="email" type="email" placeholder="Email" className="h-12 w-full rounded-xl border border-input bg-card px-4 text-sm" />
+              <input name="password" type="password" placeholder="Password" className="h-12 w-full rounded-xl border border-input bg-card px-4 text-sm" />
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+              <button type="submit" className="sia-button-primary w-full">Login</button>
+            </form>
           </div>
-          <p className="mt-6 text-xs text-[var(--color-text-mid)]">By continuing, you agree to our <Link to="/contact" className="text-[var(--color-purple)] underline">terms and privacy policy</Link>.</p>
-        </motion.div>
-      </div>
-    </section>
+        </div>
+      </section>
+    </AnimatedPage>
   );
 }

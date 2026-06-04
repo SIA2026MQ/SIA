@@ -19,7 +19,7 @@ export const s3Client = new S3Client({
 });
 
 // -----------------------------------------------------------------------------
-// Used by the Frontend to securely view locked videos
+// [READ] Generate URL for streaming/viewing
 // -----------------------------------------------------------------------------
 export const generateSignedUrl = async (objectKey: string): Promise<string> => {
   const command = new GetObjectCommand({
@@ -31,7 +31,21 @@ export const generateSignedUrl = async (objectKey: string): Promise<string> => {
 };
 
 // -----------------------------------------------------------------------------
-// Used by the Video Worker to upload chunks
+// [WRITE] Generate VIP Pass for Direct Frontend Uploads (Phase 1 Fix)
+// -----------------------------------------------------------------------------
+export const generateUploadPresignedUrl = async (objectKey: string, contentType: string): Promise<string> => {
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: objectKey,
+    ContentType: contentType, // R2 needs to know if it's an .mp4, .png, etc.
+  });
+
+  // URL expires in 1 hour (plenty of time for a 3GB upload)
+  return getSignedUrl(s3Client, command, { expiresIn: 3600 });
+};
+
+// -----------------------------------------------------------------------------
+// Used by the Video Worker to upload chunks internally
 // -----------------------------------------------------------------------------
 const uploadFileToR2 = async (filePath: string, r2Key: string, contentType: string) => {
   const fileStream = fs.createReadStream(filePath);

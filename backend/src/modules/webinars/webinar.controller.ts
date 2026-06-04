@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../core/services/db.service';
-import { emailQueue } from '../../core/services/queue.service';
 import { AuthRequest } from '../../core/middlewares/auth.middleware';
-import { firebaseAdmin } from '../../core/services/firebase.service'; // <-- Brought in Firebase
+import { firebaseAdmin } from '../../core/services/firebase.service';
 
 // -----------------------------------------------------------------------------
 // [ADMIN ONLY] Schedule a Webinar with Pricing
@@ -16,7 +15,7 @@ export const createWebinar = async (req: Request, res: Response): Promise<void> 
         title,
         description,
         zoomLink,
-        minPriceInr, 
+        minPriceInr,
         minPriceUsd,
         scheduledFor: new Date(scheduledFor),
       },
@@ -48,7 +47,7 @@ export const getUpcomingWebinars = async (req: Request, res: Response): Promise<
       const token = authHeader.split(' ')[1];
       try {
         const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-        
+
         if (decodedToken.email) {
           const user = await prisma.user.findUnique({ where: { email: decodedToken.email } });
           if (user) {
@@ -127,10 +126,7 @@ export const redeemWebinarCredit = async (req: AuthRequest, res: Response): Prom
       });
     });
 
-    // Fire off the Zoom link via email in the background
-    await emailQueue.add('webinar-purchase', { userId, webinarId });
-
-    res.status(200).json({ message: 'Credit redeemed successfully! Zoom link sent to email.' });
+    res.status(200).json({ message: 'Credit redeemed successfully! The Zoom link is now unlocked in your dashboard.' });
   } catch (error: any) {
     if (error.message.includes('No active') || error.message.includes('No webinar credits') || error.message.includes('already have access')) {
       res.status(400).json({ error: error.message });

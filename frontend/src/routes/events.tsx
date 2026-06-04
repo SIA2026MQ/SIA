@@ -1,351 +1,361 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemo, useState } from "react";
 import ReactPlayer from "react-player";
-import { Calendar, MapPin, Sparkles, Check } from "lucide-react";
-import { Mandala, Lotus, LotusDivider } from "@/components/decorative";
-import { SectionHeading } from "@/components/sia-ui";
-import { EVENTS, type EventType } from "@/lib/sia-data";
+import { 
+  Calendar, MapPin, Sparkles, Check, X, ArrowRight, 
+  MonitorPlay, BookOpen, Info, ShieldAlert 
+} from "lucide-react";
+
+// Validated Asset & Layout Data hooks imports
+import gallerySatsang from "@/assets/gallery-satsang.jpg";
+import retreatMountain from "@/assets/retreat-mountain.jpg";
+import scriptureStudy from "@/assets/scripture-study.jpg";
+
+// Modern component dependencies
+import { AnimatedPage } from "@/components/common/AnimatedPage";
+import { useCart } from "@/components/common/CartContext";
+import { useRegionalPricing } from "@/hooks/useRegionalPricing";
+import { useSiteContent } from "@/hooks/useSiteContent";
+import { eventsData } from "@/utils/constants";
 import { cn } from "@/lib/utils";
 
-// 1. Define Search Parameter Types for Filtering
-type EventsSearchParams = {
-  filter?: EventType | "all";
-};
-
-export const Route = createFileRoute("/events")({
-  // 2. Validate the 'filter' parameter from the URL
-  validateSearch: (search: Record<string, unknown>): EventsSearchParams => {
-    return {
-      filter: (search.filter as EventType | "all") || "all",
-    };
+const subscriptionPlans = [
+  {
+    id: "sub-satsang-basic",
+    name: "Satsang Core",
+    validity: "1 Month",
+    details: "Daily satsang Zoom access + 1 premium webinar.",
+    price: "$49",
   },
-  head: () => ({
-    meta: [
-      { title: "Events · Satsangs, Webinars & Retreats · SIA" },
-      { name: "description", content: "Gather, seek, awaken. Join Jake Light's free satsangs, live webinars, and multi-day retreats." },
-      { property: "og:title", content: "Events · SIA" },
-      { property: "og:description", content: "Gather, seek, awaken. Join Jake Light's free satsangs, live webinars, and multi-day retreats." },
-    ],
-  }),
-  component: EventsPage,
-});
-
-const FILTERS: Array<{ id: EventType | "all"; label: string }> = [
-  { id: "all", label: "All Events" },
-  { id: "satsang", label: "Free Satsang" },
-  { id: "webinar", label: "Webinars" },
-  { id: "retreat", label: "Retreats" },
+  {
+    id: "sub-satsang-pro",
+    name: "Satsang Pro",
+    validity: "1 Month",
+    details: "Daily satsang Zoom access + 2 premium webinars.",
+    price: "$79",
+  },
 ];
 
-function EventsPage() {
-  // 3. Get the active filter from the URL
-  const { filter } = Route.useSearch();
-  const navigate = useNavigate({ from: Route.fullPath });
+export default function EventsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { webinars } = useSiteContent();
+  const { addToCart } = useCart();
+  const { localizePrice } = useRegionalPricing();
+  
+  // Extracts active navigation state parameters
+  const activeFilter = searchParams.get("filter") || "all";
+  const [activeWorkflowRetreat, setActiveWorkflowRetreat] = useState<any | null>(null);
 
-  // 4. Function to update the URL (syncs Header and Page)
-  const setFilter = (newFilter: EventType | "all") => {
-    navigate({ search: { filter: newFilter }, replace: true });
+  const setFilter = (newFilter: string) => {
+    setSearchParams({ filter: newFilter }, { replace: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const filtered = useMemo(
-    () => EVENTS.filter((e) => filter === "all" || e.type === filter),
-    [filter]
-  );
+  // Synchronized item array filtering loop
+  const filteredEvents = useMemo(() => {
+    if (activeFilter === "all") return eventsData;
+    if (activeFilter === "satsang") return eventsData.filter(e => e.type === "Free Satsang");
+    if (activeFilter === "webinar") return eventsData.filter(e => e.type === "Webinars");
+    if (activeFilter === "retreat") return eventsData.filter(e => e.type === "Retreats");
+    return eventsData;
+  }, [activeFilter]);
 
   return (
-    <>
-      <Hero />
-      <FilterBar activeFilter={filter} setFilter={setFilter} />
-      
-      {/* 5. Animated Grid Content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={filter}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.4 }}
-        >
-          <Grid events={filtered} />
-        </motion.div>
+    <AnimatedPage>
+
+      {/* ========================================================================= */}
+      {/* CORE VIEWPORT DISPLAY GATHERINGS PORTFOLIO MATRIX                         */}
+      {/* ========================================================================= */}
+      <section className="section-odd py-30">
+        <div className="sia-container">
+          <AnimatePresence mode="wait">
+            
+            {/* VIEW: SATSANG CHANNELS */}
+            {(activeFilter === "all" || activeFilter === "satsang") && (
+              <motion.div key="satsang-segment" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mb-16">
+                <SatsangSpotlight />
+              </motion.div>
+            )}
+
+            {/* VIEW: WEBINARS SECTION */}
+            {(activeFilter === "all" || activeFilter === "webinar") && (
+              <motion.div key="webinar-segment" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mb-16 space-y-10">
+                
+                <div className="space-y-1">
+                  <span className="text-xs uppercase tracking-widest text-[var(--color-gold-deep)] font-black">Live Interactive Training</span>
+                  <h2 className="sia-h2">Available Live Webinars</h2>
+                  <p className="text-sm text-muted-foreground max-w-xl">Recorded and live stream explorations of higher scriptures.</p>
+                </div>
+
+                {/* Subscription Plans Banner */}
+                <div className="grid gap-6 md:grid-cols-2 pb-6">
+                  {subscriptionPlans.map((plan, idx) => (
+                    <article key={plan.id} className="sia-card overflow-hidden p-0 bg-white border border-border">
+                      <img src={idx === 0 ? gallerySatsang : scriptureStudy} alt={plan.name} className="aspect-[21/9] w-full object-cover" />
+                      <div className="p-5 space-y-3">
+                        <span className="rounded-full bg-purple-pale px-3 py-1 text-xs font-semibold uppercase text-primary inline-block">{plan.validity} Validity</span>
+                        <h3 className="sia-h3">{plan.name}</h3>
+                        <p className="text-sm text-muted-foreground">{plan.details}</p>
+                        <div className="flex items-center justify-between gap-3 pt-2">
+                          <span className="font-semibold text-primary">{localizePrice(plan.price)}</span>
+                          <button className="sia-button-primary text-xs" onClick={() => addToCart({ id: plan.id, category: "Practices", title: `${plan.name} Subscription`, description: plan.details, duration: "1 month", lessons: 30, rating: 5, price: localizePrice(plan.price), imageUrl: gallerySatsang })}>Buy Plan</button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                {/* Individual Grid Cards wrapper */}
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredEvents.filter(e => e.type === "Webinars").map((ev) => (
+                    <article key={ev.id} className="sia-card flex flex-col rounded-2xl bg-white shadow-soft overflow-hidden border border-border relative">
+                      <div className="relative aspect-[16/10] overflow-hidden">
+                        <img src={scriptureStudy} alt={ev.title} className="h-full w-full object-cover" />
+                        <span className="absolute top-4 left-4 rounded-full px-3 py-1 text-[10px] font-bold uppercase bg-indigo-600 text-white shadow-sm">Webinar</span>
+                      </div>
+                      <div className="flex flex-1 flex-col p-5 space-y-3">
+                        <h3 className="font-serif text-xl font-bold text-primary">{ev.title}</h3>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <p>📅 {ev.date} · {ev.time || "9:00 PM IST"}</p>
+                          <p>📍 {ev.location}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed flex-1">{ev.description}</p>
+                        <div className="flex items-center justify-between pt-4 border-t border-border">
+                          <span className="font-bold text-primary">{localizePrice(ev.price)}</span>
+                          <button className="sia-button-outline text-xs" onClick={() => addToCart({ id: `${ev.id}-single`, category: "Scriptures", title: ev.title, description: ev.description, duration: "1 live webinar", lessons: 1, rating: 5, price: localizePrice(ev.price), imageUrl: scriptureStudy })}>Buy Webinar</button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* VIEW: RETREATS IMMERSIONS */}
+            {(activeFilter === "all" || activeFilter === "retreat") && (
+              <motion.div key="retreat-segment" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                
+                <div className="space-y-1">
+                  <span className="text-xs uppercase tracking-widest text-[var(--color-gold-deep)] font-black">Multi-day Immersions</span>
+                  <h2 className="sia-h2">Upcoming Retreat Programs</h2>
+                </div>
+
+                <div className="grid gap-8 lg:grid-cols-2 pt-2">
+                  {filteredEvents.filter(e => e.type === "Retreats" || e.type === "retreat").map((r) => (
+                    <article key={r.id} className="group relative overflow-hidden rounded-3xl shadow-soft aspect-[16/10] w-full">
+                      <img src={retreatMountain} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-purple-950/90 via-purple-900/30 to-transparent" />
+                      <span className="absolute top-5 right-5 inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-purple-950 shadow-sm">
+                        <Sparkles className="h-3 w-3 animate-pulse" /> Limited Seats
+                      </span>
+                      <div className="absolute inset-x-0 bottom-0 p-6 text-white space-y-1">
+                        <p className="text-xs uppercase tracking-widest font-bold text-amber-400">{r.location}</p>
+                        <h3 className="font-serif text-2xl font-bold">{r.title}</h3>
+                        <p className="text-xs opacity-90">{r.date} · {r.price}</p>
+                        <button onClick={() => setActiveWorkflowRetreat(r)} className="mt-3 bg-[#600694] hover:bg-opacity-95 text-white font-bold px-5 py-2 rounded text-xs uppercase tracking-wider transition-all shadow-md">
+                          Register
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                
+                {/* Structural boundary layout line break spacer */}
+                <div className="border-t border-border/40 pt-10" />
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </div>
+      </section>
+
+      {/* OVERLAY RETREAT REGISTRATION DRAWER */}
+      <AnimatePresence>
+        {activeWorkflowRetreat && (
+          <RetreatStepperForm event={activeWorkflowRetreat} onClose={() => setActiveWorkflowRetreat(null)} />
+        )}
       </AnimatePresence>
 
-      <SatsangSpotlight />
-      <RetreatStrip />
-    </>
+    </AnimatedPage>
   );
 }
 
-function Hero() {
-  return (
-    <section className="relative overflow-hidden bg-[var(--color-cream)] pt-32 pb-20">
-      <Mandala className="absolute -right-32 -top-20 w-[700px] text-[var(--color-purple)] opacity-[0.06] spin-slow" />
-      <div className="relative mx-auto max-w-4xl px-6 text-center">
-        <p className="btn-label text-[var(--color-gold)]">Live · Online · In Person</p>
-        <h1 className="mt-5 font-serif italic text-5xl sm:text-6xl text-[var(--color-purple)] leading-[1.05]">
-          Gather. Seek. Awaken.
-        </h1>
-        <p className="mt-6 text-lg text-[var(--color-text-mid)] max-w-2xl mx-auto">
-          Every gathering is an invitation — to remember, to release, to recognise the awareness you already are.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function FilterBar({ activeFilter, setFilter }: { activeFilter: EventType | "all"; setFilter: (f: EventType | "all") => void }) {
-  return (
-    <div className="sticky top-16 lg:top-20 z-30 glass-cream border-y border-[oklch(0.247_0.165_305_/_0.08)]">
-      <div className="mx-auto max-w-5xl px-4 overflow-x-auto">
-        <div className="flex gap-2 py-3 min-w-max mx-auto justify-center">
-          {FILTERS.map((f) => {
-            const isActive = activeFilter === f.id;
-            return (
-              <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={cn(
-                  "relative rounded-full px-5 py-2 btn-label transition-all duration-300 overflow-hidden",
-                  isActive
-                    ? "text-[var(--color-cream)]"
-                    : "border border-[var(--color-purple)]/30 text-[var(--color-purple)] hover:border-[var(--color-purple)]"
-                )}
-              >
-                {isActive && (
-                  <motion.span
-                    layoutId="filter-pill"
-                    className="absolute inset-0 bg-[var(--color-purple)]"
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10">{f.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Grid({ events }: { events: typeof EVENTS }) {
-  const typeColor: Record<EventType, string> = {
-    satsang: "bg-[var(--color-gold)]/90 text-[var(--color-text-dark)]",
-    webinar: "bg-[var(--color-purple-light)] text-[var(--color-cream)]",
-    retreat: "bg-[var(--color-purple)] text-[var(--color-cream)]",
-  };
-  return (
-    <section className="bg-[var(--color-cream)] py-20 min-h-[400px]">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((ev, i) => (
-            <motion.article
-              layout
-              key={ev.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              className={cn(
-                "hover-lift group flex flex-col rounded-2xl bg-white shadow-card overflow-hidden relative",
-                ev.past && "grayscale"
-              )}
-            >
-              <div className="relative aspect-[16/10] overflow-hidden">
-                <img
-                  src={ev.image}
-                  alt={ev.title}
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <span className={cn("absolute top-4 left-4 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider", typeColor[ev.type])}>
-                  {ev.type}
-                </span>
-              </div>
-              <div className="flex flex-1 flex-col p-6">
-                <h3 className="font-serif text-2xl text-[var(--color-purple)] leading-snug">{ev.title}</h3>
-                <div className="mt-3 space-y-1.5 text-sm text-[var(--color-text-mid)]">
-                  <p className="flex items-center gap-2"><Calendar className="h-4 w-4" /> {ev.date} · {ev.time}</p>
-                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {ev.location}</p>
-                </div>
-                <p className="mt-4 text-sm text-[var(--color-text-mid)] leading-relaxed flex-1">{ev.description}</p>
-                <div className="mt-6 flex items-center justify-between">
-                  <span className={cn(
-                    "rounded-full px-3 py-1 text-sm font-semibold",
-                    ev.price === "FREE" ? "bg-[var(--color-gold)]/20 text-[var(--color-purple)]" : "text-[var(--color-purple)]"
-                  )}>
-                    {ev.price}
-                  </span>
-                  <button
-                    disabled={ev.past}
-                    className={cn(
-                      "rounded-full px-5 py-2.5 btn-label transition-all",
-                      ev.past
-                        ? "border border-[var(--color-text-mid)]/30 text-[var(--color-text-mid)] cursor-not-allowed"
-                        : ev.price === "FREE"
-                          ? "border-2 border-[var(--color-purple)] text-[var(--color-purple)] hover:bg-[var(--color-purple)] hover:text-[var(--color-cream)]"
-                          : "bg-[var(--color-purple)] text-[var(--color-cream)] hover:bg-[var(--color-purple-light)]"
-                    )}
-                  >
-                    {ev.past ? "Recording" : ev.price === "FREE" ? "Join Free" : "Book Now"}
-                  </button>
-                </div>
-              </div>
-            </motion.article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// Keep your existing SatsangSpotlight, FloatingField, and RetreatStrip functions below...
+// ========================================================================= 
+// SPOTLIGHT GATHERING SUB-LAYOUT COMPONENTS                                 
+// ========================================================================= 
 function SatsangSpotlight() {
   const [submitted, setSubmitted] = useState(false);
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
 
   return (
-    <section className="relative bg-[var(--color-peach)] py-24 overflow-hidden">
-      <Lotus className="absolute -bottom-20 -right-20 h-96 w-96 text-[var(--color-purple)] opacity-[0.06]" />
-      <div className="mx-auto max-w-6xl px-6 lg:px-10">
-        <SectionHeading eyebrow="Free Weekly Gathering" title="The Saturday Satsang" subtitle="A free, open, and ongoing invitation. Bring your questions, your silence, your seeking." />
+    <section className="relative bg-amber-50/20 border border-border rounded-3xl p-10 sm:p-10 overflow-hidden shadow-soft">
+      
+      <div className="space-y-5 mb-8">
+        <span className="text-xs uppercase tracking-widest text-[var(--color-gold-deep)] font-black">Free Weekly Gathering</span>
+        <h2 className="sia-h2">The Saturday Satsang</h2>
+        <p className="text-sm text-muted-foreground max-w-xl">A free, open, and ongoing invitation. Bring your questions, your silence, your seeking.</p>
+      </div>
 
-        <div className="mt-14 grid gap-10 lg:grid-cols-2 items-start">
-          <div className="rounded-2xl bg-white shadow-card overflow-hidden">
-            <div className="aspect-video bg-black">
-              <ReactPlayer
-                src="https://www.youtube.com/watch?v=inpok4MKVLM"
-                width="100%"
-                height="100%"
-                controls
-                light
-              />
-            </div>
-            <div className="p-6">
-              <h3 className="font-serif text-2xl text-[var(--color-purple)]">Recurring Schedule</h3>
-              <table className="mt-4 w-full text-sm">
-                <tbody className="divide-y divide-[var(--color-purple)]/10">
-                  {[
-                    ["Every Saturday", "7:00 PM IST · 9:30 AM EST", "Open Satsang"],
-                    ["First Friday", "8:00 PM IST", "Devotional Chanting"],
-                    ["Last Sunday", "10:00 AM IST", "Silent Sit"],
-                  ].map(([day, time, name]) => (
-                    <tr key={day}>
-                      <td className="py-3 font-semibold text-[var(--color-purple)]">{day}</td>
-                      <td className="py-3 text-[var(--color-text-mid)]">{time}</td>
-                      <td className="py-3 text-[var(--color-text-dark)]">{name}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      <div className="grid gap-10 lg:grid-cols-2 items-start">
+        <div className="rounded-2xl bg-white shadow-soft overflow-hidden border border-border p-3">
+          <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-inner">
+            <ReactPlayer url="https://www.youtube.com/watch?v=inpok4MKVLM" width="100%" height="100%" controls light />
           </div>
-
-          <div className="rounded-2xl bg-white shadow-card p-8">
-            <h3 className="font-serif text-2xl text-[var(--color-purple)]">Register for the next satsang</h3>
-            <p className="mt-2 text-sm text-[var(--color-text-mid)]">We'll send you the Zoom link and a quiet reminder.</p>
-            {submitted ? (
-              <div className="mt-8 flex flex-col items-center gap-4 py-12 text-center">
-                <div className="grid h-14 w-14 place-items-center rounded-full bg-[var(--color-gold)]/20 text-[var(--color-purple)]">
-                  <Check className="h-7 w-7" />
-                </div>
-                <p className="font-serif text-xl text-[var(--color-purple)]">You are registered.</p>
-                <p className="text-sm text-[var(--color-text-mid)]">A confirmation is on its way. We'll meet in stillness on Saturday.</p>
-              </div>
-            ) : (
-              <form onSubmit={onSubmit} className="mt-6 grid gap-4">
+          <div className="p-4 pt-6">
+            <h3 className="font-serif text-xl text-primary font-bold">Recurring Schedule</h3>
+            <table className="mt-3 w-full text-sm">
+              <tbody className="divide-y divide-border/60 text-muted-foreground">
                 {[
-                  { name: "name", label: "Full Name", type: "text" },
-                  { name: "email", label: "Email", type: "email" },
-                  { name: "whatsapp", label: "WhatsApp Number", type: "tel" },
-                ].map((f) => (
-                  <FloatingField key={f.name} {...f} />
+                  ["Every Saturday", "7:00 PM IST · 9:30 AM EST", "Open Satsang"],
+                  ["First Friday", "8:00 PM IST", "Devotional Chanting"],
+                  ["Last Sunday", "10:00 AM IST", "Silent Sit"],
+                ].map(([day, time, name]) => (
+                  <tr key={day}>
+                    <td className="py-2.5 font-semibold text-primary text-xs uppercase tracking-wider">{day}</td>
+                    <td className="py-2.5 text-xs sm:text-sm">{time}</td>
+                    <td className="py-2.5 text-foreground font-medium text-right">{name}</td>
+                  </tr>
                 ))}
-                <button
-                  type="submit"
-                  className="mt-2 inline-flex items-center justify-center rounded-full bg-[var(--color-purple)] px-6 py-3.5 btn-label text-[var(--color-cream)] hover:bg-[var(--color-purple-light)] transition-colors"
-                >
-                  Register Free
-                </button>
-              </form>
-            )}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
 
-function FloatingField({ name, label, type }: { name: string; label: string; type: string }) {
-  const [value, setValue] = useState("");
-  const [focused, setFocused] = useState(false);
-  const active = focused || value.length > 0;
-  return (
-    <div className="relative">
-      <input
-        id={`f-${name}`}
-        type={type}
-        required
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        className="peer w-full rounded-lg border border-[var(--color-purple)]/20 bg-transparent px-4 pt-5 pb-2 text-[var(--color-text-dark)] focus:border-[var(--color-purple)] focus:outline-none transition-colors"
-      />
-      <label
-        htmlFor={`f-${name}`}
-        className={cn(
-          "pointer-events-none absolute left-4 transition-all duration-200",
-          active
-            ? "top-1.5 text-[10px] uppercase tracking-wider text-[var(--color-purple)]"
-            : "top-3.5 text-sm text-[var(--color-text-mid)]",
-        )}
-      >
-        {label}
-      </label>
-    </div>
-  );
-}
-
-function RetreatStrip() {
-  const retreats = EVENTS.filter((e) => e.type === "retreat");
-  return (
-    <section className="bg-[var(--color-cream)] py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <SectionHeading eyebrow="Multi-day Immersions" title="Upcoming Retreats" />
-        <div className="mt-14 grid gap-8 lg:grid-cols-2">
-          {retreats.map((r, i) => (
-            <motion.article
-              key={r.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.7, delay: i * 0.1 }}
-              className="group relative overflow-hidden rounded-2xl shadow-card aspect-[5/4] sm:aspect-[16/10]"
-            >
-              <img
-                src={r.image}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-purple)]/95 via-[var(--color-purple)]/40 to-transparent" />
-              <span className="absolute top-5 right-5 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-gold)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-purple)]">
-                <Sparkles className="h-3 w-3" /> Limited Seats
-              </span>
-              <div className="absolute inset-x-0 bottom-0 p-7 text-[var(--color-cream)]">
-                <p className="btn-label text-[var(--color-gold)]">{r.location}</p>
-                <h3 className="mt-2 font-serif text-3xl">{r.title}</h3>
-                <p className="mt-1 text-sm opacity-90">{r.date} · {r.price}</p>
+        <div className="rounded-2xl bg-white shadow-soft p-6 sm:p-8 border border-border space-y-4">
+          <h3 className="font-serif text-xl text-primary font-bold">Register for the next Satsang</h3>
+          <p className="text-xs text-muted-foreground">We will broadcast the access parameters directly into your digital endpoints.</p>
+          
+          {submitted ? (
+            <div className="flex flex-col items-center gap-3 py-10 text-center animate-fadeIn">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                <Check className="h-5 w-5" />
               </div>
-            </motion.article>
-          ))}
+              <p className="font-serif text-lg text-primary font-bold">Registration Captured</p>
+              <p className="text-xs text-muted-foreground max-w-xs">We meet in absolute silence on Saturday. Check your email inbox shortly.</p>
+            </div>
+          ) : (
+            <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }} className="space-y-4 pt-2">
+              {["Full Name", "Email Address", "WhatsApp Number"].map(lbl => (
+                <input key={lbl} type={lbl.includes("Email") ? "email" : "text"} placeholder={`${lbl} *`} required className="w-full h-11 px-4 rounded-xl border border-border outline-none bg-background text-sm font-medium text-foreground placeholder:text-muted-foreground/60 focus:border-primary" />
+              ))}
+              <button type="submit" className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-primary/90 transition-all shadow-soft">
+                Register Free Access
+              </button>
+            </form>
+          )}
         </div>
-        <LotusDivider />
       </div>
     </section>
+  );
+}
+
+function RetreatStepperForm({ event, onClose }: { event: any; onClose: () => void }) {
+  const [step, setStep] = useState<"details" | "form" | "success">("details");
+  const [fullName, setFullName] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-sm">
+      <div className="fixed inset-0" onClick={onClose} />
+      
+      <motion.div 
+        initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} 
+        transition={{ type: "spring", stiffness: 280, damping: 30 }}
+        className="relative z-10 w-full max-w-xl sm:max-w-2xl h-full bg-white shadow-2xl flex flex-col text-gray-800 border-l"
+      >
+        <header className="p-5 border-b bg-gray-50 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h3 className="font-serif text-xl font-bold text-primary">Retreat Portal Screening</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">SIA Pathless Pathway / Review Node</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 text-gray-400"><X className="w-5 h-5" /></button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white text-sm leading-relaxed">
+          
+          {step === "details" && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="border border-border rounded-2xl p-5 bg-card space-y-4">
+                <h4 className="font-serif text-lg font-bold text-primary border-b pb-2">Guidelines Statement</h4>
+                <p className="text-xs text-red-500 font-medium flex items-center gap-1"><ShieldAlert className="h-3.5 w-3.5" /> Direct submission approval requested</p>
+                
+                <p>
+                  After you submit the form, your application will be reviewed and if approved, you will receive a reply in which the dates and contribution amount will be shared.
+                </p>
+                <p className="font-bold text-red-700 bg-red-50 p-3 rounded-xl border border-red-100 text-xs">
+                  If you do not receive a reply within 1 week of submitting this form, it means the application has not been approved.
+                </p>
+                <p className="text-xs text-muted-foreground leading-normal">
+                  Please note that for retreats, you need to be a member of SiA and have done at least the basic practices. No spot allocations are permitted under any conditions.
+                </p>
+              </div>
+
+              <button onClick={() => setStep("form")} className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-primary/90 transition-all flex items-center justify-center gap-1 shadow-md">
+                Proceed to Screening Questionnaire <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {step === "form" && (
+            <form onSubmit={(e) => { e.preventDefault(); setStep("success"); }} className="space-y-4 text-xs sm:text-sm animate-fadeIn">
+              <label className="block space-y-1">
+                <span className="font-semibold text-gray-700 text-xs tracking-wide">Full Name *</span>
+                <input type="text" required value={fullName} onChange={e => setFullName(e.target.value)} className="w-full border p-2.5 rounded-xl outline-none bg-background text-sm font-medium text-foreground focus:border-primary" />
+              </label>
+
+              <div className="grid grid-cols-2 gap-4">
+                <label className="block space-y-1">
+                  <span className="font-semibold text-gray-700 text-xs tracking-wide">Age *</span>
+                  <input type="number" required className="w-full border p-2.5 rounded-xl outline-none bg-background text-sm font-medium text-foreground focus:border-primary" />
+                </label>
+                <label className="block space-y-1">
+                  <span className="font-semibold text-gray-700 text-xs tracking-wide">WhatsApp *</span>
+                  <input type="tel" required className="w-full border p-2.5 rounded-xl outline-none bg-background text-sm font-medium text-foreground focus:border-primary" />
+                </label>
+              </div>
+
+              <label className="block space-y-1">
+                <span className="font-semibold text-gray-700 text-xs tracking-wide">Email Reference Address *</span>
+                <input type="email" required className="w-full border p-2.5 rounded-xl outline-none bg-background text-sm font-medium text-foreground focus:border-primary" />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="font-semibold text-gray-700 text-xs tracking-wide">Current Spiritual Core Routine *</span>
+                <input type="text" required placeholder="Describe your daily practices..." className="w-full border p-2.5 rounded-xl outline-none bg-background text-sm font-medium text-foreground placeholder:text-muted-foreground/60 focus:border-primary" />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="font-semibold text-gray-700 text-xs tracking-wide">Why do you want to attend this multi-day session? *</span>
+                <textarea required rows={3} className="w-full border p-2.5 rounded-xl outline-none focus:border-primary resize-none bg-background text-sm font-medium text-foreground" />
+              </label>
+
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs pt-2">
+                <input type="checkbox" required className="accent-primary h-4 w-4 shrink-0 rounded border-border mt-0.5" />
+                <span className="font-semibold text-gray-900 leading-normal">I certify that all details submitted above are accurate. If found incorrect, my application can be rejected. *</span>
+              </label>
+
+              <button type="submit" className="w-full py-3.5 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-primary/90 transition-all shadow-md mt-2">
+                Transmit Parameters For Review
+              </button>
+            </form>
+          )}
+
+          {step === "success" && (
+            <div className="text-center py-14 space-y-4 animate-fadeIn">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full grid place-items-center mx-auto shadow-sm">
+                <Check className="w-5 h-5" />
+              </div>
+              <h4 className="font-serif text-2xl font-bold text-primary">Application Transmitted</h4>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                Thank you, {fullName || "seeker"}. Your screening variables are logged securely in the review verification stack.
+              </p>
+              <button onClick={onClose} className="px-5 py-2 border rounded-full text-xs font-bold uppercase tracking-wider text-muted-foreground hover:bg-gray-50 transition-colors">
+                Exit Process
+              </button>
+            </div>
+          )}
+
+        </div>
+      </motion.div>
+    </div>
   );
 }

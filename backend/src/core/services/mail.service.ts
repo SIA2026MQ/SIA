@@ -16,7 +16,7 @@ export const transporter = nodemailer.createTransport({
 export const sendEmail = async (to: string, subject: string, html: string) => {
   try {
     await transporter.sendMail({
-      from: `"Shifting Into Awareness" <${process.env.SMTP_USER}>`, // Updated Brand Name
+      from: `"Shifting Into Awareness" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,

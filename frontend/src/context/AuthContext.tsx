@@ -27,27 +27,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
+      
       if (firebaseUser) {
         try {
+          // 1. Try to find the user in your database
           const response = await api.getMe();
           setDbUser(response.user);
         } catch (err) {
-          console.error("Failed to sync user with backend:", err);
-          setDbUser(null);
+          console.log("New user detected. Falling back to Google Profile data.");
+          
+          // 2. CRITICAL FIX: If they are a new user (Sign Up), use their Google data!
+          // This ensures the Navbar updates instantly with their name.
+          setDbUser({
+            id: firebaseUser.uid,
+            firebaseUid: firebaseUser.uid,
+            name: firebaseUser.displayName || "New User",
+            email: firebaseUser.email || "",
+            role: "USER",
+          });
+          
+          // Note: In the future, you can add a call here to save this new user to your database:
+          // await api.createUser({ email: firebaseUser.email, name: firebaseUser.displayName });
         }
       } else {
         setDbUser(null);
       }
+      
       setLoading(false);
     });
+    
     return unsubscribe;
   }, []);
 
   const signInWithGoogle = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      // The popup will return, and onAuthStateChanged will trigger automatically
-      // No need to manually navigate
+      await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Google sign-in popup error:", error);
       throw error;

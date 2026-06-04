@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { prisma } from '../../core/services/db.service';
-import { emailQueue } from '../../core/services/queue.service';
 import { AuthRequest } from '../../core/middlewares/auth.middleware';
 
 const razorpay = new Razorpay({
@@ -17,7 +16,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
   try {
     const userId = req.user!.id;
     const { itemId, itemType, customAmountInr } = req.body;
-    
+
     // Ensure custom amount is treated as a number to prevent injection bugs
     const userCustomAmount = customAmountInr ? Number(customAmountInr) : null;
     let finalPrice = 0;
@@ -25,7 +24,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     if (itemType === 'COURSE') {
       const course = await prisma.course.findUnique({ where: { id: itemId } });
       if (!course) { res.status(404).json({ error: 'Course not found' }); return; }
-      finalPrice = course.priceInr; 
+      finalPrice = course.priceInr;
 
     } else if (itemType === 'WEBINAR') {
       const webinar = await prisma.webinar.findUnique({ where: { id: itemId } });
@@ -181,15 +180,14 @@ const handleSuccessfulPayment = async (dbOrderId: string, razorpayPaymentId: str
       update: { orderId: order.id },
       create: { userId: order.userId, courseId: order.itemId, orderId: order.id },
     });
-  } 
+  }
   else if (order.itemType === 'WEBINAR') {
     await prisma.webinarAccess.upsert({
       where: { userId_webinarId: { userId: order.userId, webinarId: order.itemId } },
       update: { orderId: order.id },
       create: { userId: order.userId, webinarId: order.itemId, orderId: order.id },
     });
-    await emailQueue.add('webinar-purchase', { userId: order.userId, webinarId: order.itemId });
-  } 
+  }
   else if (order.itemType === 'SUBSCRIPTION') {
     const plan = await prisma.subscriptionPlan.findUnique({ where: { id: order.itemId } });
     if (plan) {
@@ -201,7 +199,7 @@ const handleSuccessfulPayment = async (dbOrderId: string, razorpayPaymentId: str
         update: {
           planId: plan.id,
           orderId: order.id,
-          remainingCredits: plan.webinarCredits, 
+          remainingCredits: plan.webinarCredits,
           expiryDate: expiryDate,
           isActive: true,
         },
@@ -209,7 +207,7 @@ const handleSuccessfulPayment = async (dbOrderId: string, razorpayPaymentId: str
           userId: order.userId,
           planId: plan.id,
           orderId: order.id,
-          remainingCredits: plan.webinarCredits, 
+          remainingCredits: plan.webinarCredits,
           expiryDate: expiryDate,
           isActive: true,
         },

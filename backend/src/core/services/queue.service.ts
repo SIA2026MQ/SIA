@@ -10,13 +10,30 @@ if (!redisUrl) {
   throw new Error('CRITICAL: REDIS_URL is not defined in the environment variables.');
 }
 
-// 1. Establish the connection to Redis
+// -----------------------------------------------------------------------------
+// 1. Establish the connection to Local Redis (Optimized for Docker)
+// -----------------------------------------------------------------------------
 export const redisConnection = new Redis(redisUrl, {
-  maxRetriesPerRequest: null, // BullMQ requires this to prevent crashing
+  // 🚨 BullMQ strictly requires this to be null so it can handle its own retries
+  maxRetriesPerRequest: null,
 });
 
-// 2. Export the Queues (The Waiting Rooms)
-export const emailQueue = new Queue('email-queue', { connection: redisConnection });
-export const videoQueue = new Queue('video-queue', { connection: redisConnection }); // <-- ADDED THIS
+// -----------------------------------------------------------------------------
+// 2. Standard Error Handling
+// -----------------------------------------------------------------------------
+redisConnection.on('error', (err: any) => {
+  console.error('Redis Connection Error:', err.message);
+});
 
-console.log('📦 Redis Message Queues initialized successfully.');
+// -----------------------------------------------------------------------------
+// 3. Export the Video Queue
+// -----------------------------------------------------------------------------
+export const videoQueue = new Queue('video-queue', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    removeOnComplete: true, // Keep your local RAM clean by deleting finished jobs!
+    removeOnFail: false,    // Leave failed jobs in the queue so you can debug them
+  }
+});
+
+console.log('📦 Local Redis Video Queue initialized successfully.');
