@@ -9,7 +9,8 @@ import { AuthRequest } from '../../core/middlewares/auth.middleware';
 // -----------------------------------------------------------------------------
 export const createCourse = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { title, description, priceInr, priceUsd } = req.body;
+    // Extract category from the incoming request
+    const { title, description, priceInr, priceUsd, category } = req.body;
 
     const newCourse = await prisma.course.create({
       data: {
@@ -17,6 +18,7 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
         description,
         priceInr,
         priceUsd,
+        category: category || "Practices", // Safely map to your new Prisma Enum
         isPublished: true,
       },
     });
@@ -29,7 +31,7 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
     console.error('Create Course Error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-};
+};    
 
 // -----------------------------------------------------------------------------
 // [ADMIN ONLY] Request Direct-to-R2 Upload URL (The Phase 1 Gateway)
@@ -191,6 +193,55 @@ export const getCourseById = async (req: Request, res: Response): Promise<void> 
 
   } catch (error) {
     console.error('Fetch Course Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// -----------------------------------------------------------------------------
+// [AUTHENTICATED] Get all courses enrolled by the current user
+// -----------------------------------------------------------------------------
+export const getMyEnrolledCourses = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+
+    // 1. Fetch Enrolled Courses
+    const courseAccessLedger = await prisma.courseAccess.findMany({
+      where: { userId },
+      include: { 
+        course: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            category: true,
+            // Include image or other fields if you have them
+          }
+        } 
+      },
+      orderBy: { purchasedAt: 'desc' }
+    });
+
+    const enrolledCourses = courseAccessLedger.map(access => access.course);
+
+    // 2. Fetch Active Subscription (Satsang)
+    const activeSubscription = await prisma.userSubscription.findFirst({
+      where: { 
+        userId: userId,
+        isActive: true,
+        expiryDate: { gte: new Date() } // Only get it if it hasn't expired
+      },
+      include: {
+        plan: true // Brings in the name, duration, and webinar credits
+      }
+    });
+
+    // 3. Return everything to the frontend
+    res.status(200).json({ 
+      courses: enrolledCourses,
+      subscription: activeSubscription 
+    });
+  } catch (error) {
+    console.error('Fetch My Learning Error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

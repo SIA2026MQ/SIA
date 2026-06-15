@@ -3,7 +3,7 @@ import { Pencil, Trash2, UploadCloud, Calendar } from "lucide-react";
 import { api } from "@/lib/api";
 import { AdminFormField, ADMIN_INPUT_CLASS, ADMIN_TEXTAREA_CLASS } from "./adminUtils";
 
-export function WebinarsTab() {
+export function AdminWebinarTab() {
   const [webinars, setWebinars] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   

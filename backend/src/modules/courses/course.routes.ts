@@ -4,7 +4,8 @@ import {
   getAllCourses,
   addVideoToCourse,
   getCourseById,
-  requestVideoUploadUrl
+  requestVideoUploadUrl,
+    getMyEnrolledCourses
 } from './course.controller';
 import { authenticateJWT, requireAdmin } from '../../core/middlewares/auth.middleware';
 
@@ -18,6 +19,7 @@ router.get('/', getAllCourses);
 router.post('/upload-url', authenticateJWT, requireAdmin, requestVideoUploadUrl);
 
 // Endpoint: GET /api/courses/:courseId (Anyone can view a specific course curriculum)
+router.get('/enrolled/me', authenticateJWT, getMyEnrolledCourses);
 router.get('/:courseId', getCourseById);
 
 // Endpoint: POST /api/courses (ONLY Admins can create)

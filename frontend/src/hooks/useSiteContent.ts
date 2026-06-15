@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   loadManagedBlogs,
   loadManagedCourses,
-  loadManagedRetreats,
   loadManagedWebinars,
   type ManagedBlog,
   type ManagedCourse,
@@ -22,7 +21,6 @@ export function useSiteContent() {
       setManagedCourses(loadManagedCourses());
       setManagedBlogs(loadManagedBlogs());
       setManagedWebinars(loadManagedWebinars());
-      setManagedRetreats(loadManagedRetreats());
     };
 
     sync();

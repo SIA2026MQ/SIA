@@ -7,7 +7,6 @@ import { firebaseAdmin } from '../../core/services/firebase.service';
 // -----------------------------------------------------------------------------
 export const createPlan = async (req: Request, res: Response): Promise<void> => {
   try {
-    // UPDATED: Now strictly matches your new Prisma Schema (minPrice and webinarCredits)
     const { name, durationDays, minPriceInr, minPriceUsd, webinarCredits } = req.body;
     
     const plan = await prisma.subscriptionPlan.create({
@@ -27,7 +26,7 @@ export const createPlan = async (req: Request, res: Response): Promise<void> => 
 export const getAllPlans = async (req: Request, res: Response): Promise<void> => {
   try {
     const plans = await prisma.subscriptionPlan.findMany({
-      orderBy: { minPriceInr: 'asc' } // Show cheapest plans first
+      orderBy: { minPriceInr: 'asc' }
     });
     res.status(200).json({ plans });
   } catch (error) {
@@ -42,11 +41,12 @@ export const getAllPlans = async (req: Request, res: Response): Promise<void> =>
 export const createDailySession = async (req: Request, res: Response): Promise<void> => {
   try {
     const { title, zoomLink, date } = req.body;
+    
     const session = await prisma.dailySession.create({
       data: {
         title: title || 'Daily Live Session',
         zoomLink,
-        date: new Date(date), 
+        date: date ? new Date(date) : new Date(), 
       },
     });
     res.status(201).json({ message: 'Daily session scheduled', session });
@@ -57,26 +57,44 @@ export const createDailySession = async (req: Request, res: Response): Promise<v
 };
 
 // -----------------------------------------------------------------------------
-// [PUBLIC/STUDENT] Get Today's Session (With Dynamic Firebase Security Lock)
+// [ADMIN] Get Session History (For Admin Dashboard)
+// -----------------------------------------------------------------------------
+export const getSessionHistory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const sessions = await prisma.dailySession.findMany({
+      orderBy: { date: 'desc' }, 
+    });
+    res.status(200).json({ sessions });
+  } catch (error) {
+    console.error('Fetch Session History Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// -----------------------------------------------------------------------------
+// [PUBLIC/STUDENT] Get Active Session (Rolling 24-Hour Window)
 // -----------------------------------------------------------------------------
 export const getTodaySession = async (req: Request, res: Response): Promise<void> => {
   try {
-    // 1. Find a session scheduled for today
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    // 1. Calculate exactly 24 hours ago from right now
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+    // 2. Query the most recent session that is LESS THAN 24 hours old
     const session = await prisma.dailySession.findFirst({
-      where: { date: { gte: todayStart, lte: todayEnd } },
+      where: { 
+        date: { 
+          gte: twentyFourHoursAgo // "Greater Than or Equal to" 24 hours ago
+        } 
+      },
+      orderBy: { date: 'desc' } // Always grab the most recently posted one
     });
 
     if (!session) {
-      res.status(404).json({ message: 'No live session scheduled for today.' });
+      res.status(404).json({ message: 'No live session active currently.' });
       return;
     }
 
-    // 2. THE FIREBASE SECURITY LOCK
+    // 3. THE FIREBASE SECURITY LOCK
     let hasActiveSubscription = false;
     const authHeader = req.headers.authorization;
 
@@ -84,7 +102,6 @@ export const getTodaySession = async (req: Request, res: Response): Promise<void
       const token = authHeader.split(' ')[1];
 
       try {
-        // Verify with Google Firebase instead of JWT
         const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
         
         if (decodedToken.email) {
@@ -94,7 +111,6 @@ export const getTodaySession = async (req: Request, res: Response): Promise<void
             if (user.role === 'ADMIN') {
               hasActiveSubscription = true;
             } else {
-              // Check if user has an active, unexpired subscription
               const activeSub = await prisma.userSubscription.findFirst({
                 where: {
                   userId: user.id,
@@ -107,11 +123,11 @@ export const getTodaySession = async (req: Request, res: Response): Promise<void
           }
         }
       } catch (err) {
-        // Ignore invalid/expired tokens, treat as public guest
+        // Ignore invalid/expired tokens
       }
     }
 
-    // 3. Strip the Zoom link if they don't have a plan
+    // 4. Strip the Zoom link if they don't have a plan
     if (!hasActiveSubscription) {
       session.zoomLink = 'LOCKED - Active Subscription Required';
     }

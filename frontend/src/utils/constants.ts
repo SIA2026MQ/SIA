@@ -31,7 +31,7 @@ type BlogItem = {
 export const navLinks = [
   { label: "Home", to: "/" },
   { label: "SIA", to: "/sia" },
-  { label: "Events", to: "/events" },
+  { label: "Events" },
   { label: "Courses", to: "/courses" },
   { label: "About", to: "/about" },
   { label: "Blog", to: "/blog" },

@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
 import { ExternalLink, PlusCircle, Sparkles } from "lucide-react";
 import {
-  loadCoupons, loadManagedBlogs, loadManagedCourses,
-  loadManagedRetreats, loadManagedWebinars, loadRetreatInquiries,
+  loadCoupons, loadManagedBlogs, loadManagedCourses, loadManagedWebinars, loadRetreatInquiries,
 } from "@/utils/contentStore";
 
 export function DashboardTab({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
@@ -10,10 +9,10 @@ export function DashboardTab({ setActiveTab }: { setActiveTab: (tab: string) => 
   const stats = [
     { label: "Managed Courses", value: loadManagedCourses().length },
     { label: "Managed Webinars", value: loadManagedWebinars().length },
-    { label: "Managed Retreats", value: loadManagedRetreats().length },
     { label: "Managed Blogs", value: loadManagedBlogs().length },
     { label: "Coupons", value: loadCoupons().length },
     { label: "Retreat Inquiries", value: loadRetreatInquiries().length },
+    { label: "Today's Session", value: "Today Live Section" },
   ];
 
   return (
@@ -47,6 +46,12 @@ export function DashboardTab({ setActiveTab }: { setActiveTab: (tab: string) => 
             </button>
             <button className="sia-button-outline justify-start border-[#600694]/20 text-[#600694] hover:bg-[#600694] hover:text-white transition-all w-full text-left px-4 py-2 rounded-lg flex items-center" onClick={() => setActiveTab("webinars")}>
               <PlusCircle className="mr-2 h-4 w-4" /> Add a webinar
+            </button>
+            <button 
+              className="sia-button-outline justify-start border-[#600694]/20 text-[#600694] hover:bg-[#600694] hover:text-white transition-all w-full text-left px-4 py-2 rounded-lg flex items-center" 
+              onClick={() => setActiveTab("daily-session")} // This triggers the switch
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> Add daily session
             </button>
             <button className="sia-button-outline justify-start border-[#600694]/20 text-[#600694] hover:bg-[#600694] hover:text-white transition-all w-full text-left px-4 py-2 rounded-lg flex items-center" onClick={() => setActiveTab("retreats")}>
               <PlusCircle className="mr-2 h-4 w-4" /> Add a retreat

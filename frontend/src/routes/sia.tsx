@@ -11,7 +11,7 @@ import { LotusDivider } from "@/components/common/LotusDivider";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 
 // Asset Validations
-import jakePortrait from "@/assets/jake-portrait.jpg";
+import jakePortrait from "@/assets/jake.png";
 
 export default function SIAPage() {
   const [searchParams] = useSearchParams();

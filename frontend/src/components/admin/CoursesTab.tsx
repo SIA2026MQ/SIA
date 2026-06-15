@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { PlusCircle, Trash2, Pencil } from "lucide-react";
 import { AdminFormField, ADMIN_INPUT_CLASS, ADMIN_TEXTAREA_CLASS, fileToDataUrl, makeFallbackImage } from "./adminUtils";
-import { loadManagedCourses, saveManagedCourses, type ManagedCourse, type CourseLesson } from "@/utils/contentStore";
+import { api } from "@/lib/api";
 
 type CourseFormState = {
   title: string; 
@@ -9,7 +9,7 @@ type CourseFormState = {
   priceINR: string; 
   priceUSD: string; 
   duration: string;
-  lessonItems: CourseLesson[]; 
+  lessonItems: Array<{ id?: string, title: string; videoDataUrl: string; videoName: string }>; 
   rating: number; 
   description: string;
 };
@@ -20,33 +20,40 @@ const DEFAULT_FORM: CourseFormState = {
   priceINR: "", 
   priceUSD: "", 
   duration: "",
-  lessonItems: [{ title: "", videoDataUrl: "", videoName: "" }], // These map to CourseVideo
+  lessonItems: [{ title: "", videoDataUrl: "", videoName: "" }], 
   rating: 4.8, 
   description: "",
 };
 
 export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
-  const [courses, setCourses] = useState<ManagedCourse[]>([]);
+  const [courses, setCourses] = useState<any[]>([]); 
   const [form, setForm] = useState<CourseFormState>(DEFAULT_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => { setCourses(loadManagedCourses()); }, []);
+  // Fetch live courses from the database
+  const fetchCourses = async () => {
+    try {
+      const res = await api.getAllCourses();
+      setCourses(res.courses);
+    } catch (error) {
+      console.error("Failed to load courses from DB", error);
+    }
+  };
+
+  useEffect(() => { 
+    fetchCourses(); 
+  }, []);
 
   const addLesson = () => {
-    setForm(prev => ({ 
-        ...prev, 
-        lessonItems: [...prev.lessonItems, { title: "", videoDataUrl: "", videoName: "" }] 
-    }));
+    setForm(prev => ({ ...prev, lessonItems: [...prev.lessonItems, { title: "", videoDataUrl: "", videoName: "" }] }));
   };
 
   const removeLesson = (index: number) => {
-    setForm(prev => ({ 
-        ...prev, 
-        lessonItems: prev.lessonItems.filter((_, i) => i !== index) 
-    }));
+    setForm(prev => ({ ...prev, lessonItems: prev.lessonItems.filter((_, i) => i !== index) }));
   };
 
-  const updateLesson = (index: number, field: keyof CourseLesson, value: string) => {
+  const updateLesson = (index: number, field: string, value: string) => {
     setForm(prev => ({
       ...prev,
       lessonItems: prev.lessonItems.map((l, i) => i === index ? { ...l, [field]: value } : l)
@@ -58,58 +65,100 @@ export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
     setForm(DEFAULT_FORM);
   };
 
-  const editCourse = (course: ManagedCourse) => {
+  // Populate form with DB data for editing
+  const editCourse = (course: any) => {
     setEditingId(course.id);
+    
+    // Map backend relational videos array back to frontend form state
+    const mappedLessons = course.videos && course.videos.length > 0 
+      ? course.videos.map((vid: any) => ({
+          id: vid.id,
+          title: vid.title,
+          videoDataUrl: vid.videoUrlR2,
+          videoName: "Existing Video" 
+        }))
+      : [{ title: "Session 1", videoDataUrl: "", videoName: "" }];
+
     setForm({
       title: course.title,
-      category: course.category,
-      priceINR: course.priceINR?.toString() || "0",
-      priceUSD: course.priceUSD?.toString() || "0",
-      duration: course.duration,
-      lessonItems: course.lessonItems && course.lessonItems.length > 0 
-        ? course.lessonItems 
-        : [{ title: "Session 1", videoDataUrl: "", videoName: "" }],
-      rating: course.rating,
+      category: course.category || "Practices",
+      priceINR: course.priceInr?.toString() || "0",
+      priceUSD: course.priceUsd?.toString() || "0",
+      duration: course.duration || "",
+      lessonItems: mappedLessons,
+      rating: course.rating || 4.8,
       description: course.description
     });
   };
 
-  const deleteCourse = (id: string) => {
-    const updated = courses.filter((item) => item.id !== id);
-    setCourses(updated);
-    saveManagedCourses(updated);
-    if (editingId === id) resetEditor();
+  // Handle Deletion
+  const deleteCourse = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) return;
+    
+    try {
+      await api.deleteCourse(id);
+      await fetchCourses();
+      if (editingId === id) resetEditor();
+    } catch (error) {
+      console.error("Failed to delete course", error);
+      alert("Failed to delete course.");
+    }
   };
 
+  // Handle Form Submission (Create & Update)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const imageDataUrl = await fileToDataUrl((formData.get("image") as File) || null);
+    setIsLoading(true);
     
-    // This structure matches your Prisma model relationships
-    const nextCourse: ManagedCourse = {
-      id: editingId ?? crypto.randomUUID(),
-      title: form.title,
-      category: form.category,
-      description: form.description,
-      duration: form.duration,
-      lessons: form.lessonItems.length,
-      lessonTitles: form.lessonItems.map(l => l.title),
-      lessonItems: form.lessonItems, // These will be used to create CourseVideo records
-      rating: form.rating,
-      priceINR: Number(form.priceINR),
-      priceUSD: Number(form.priceUSD),
-      imageDataUrl: imageDataUrl
-    };
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const file = formData.get("image") as File;
+    const imageDataUrl = file && file.size > 0 ? await fileToDataUrl(file) : null;
+    
+    try {
+      const coursePayload = {
+        title: form.title,
+        description: form.description,
+        priceInr: Number(form.priceINR), 
+        priceUsd: Number(form.priceUSD),
+        category: form.category, // <-- This will send "Practices" or "Scriptures"
+        duration: form.duration,
+        rating: form.rating,
+        ...(imageDataUrl && { imageDataUrl })
+      };
 
-    const updated = editingId
-      ? courses.map((item) => item.id === editingId ? { ...item, ...nextCourse, imageDataUrl: imageDataUrl || item.imageDataUrl } : item)
-      : [...courses, nextCourse];
+      if (editingId) {
+        // Update existing course
+        await api.updateCourse(editingId, coursePayload);
+        
+        // NOTE: Managing specific video updates (adding new ones, removing old ones) 
+        // requires a more complex backend sync. For now, this just updates the parent course.
+      } else {
+        // Create new course
+        const { course } = await api.createCourse(coursePayload);
 
-    setCourses(updated);
-    saveManagedCourses(updated);
-    resetEditor();
-    handlePostSave();
+        // Upload associated videos sequentially
+        for (let i = 0; i < form.lessonItems.length; i++) {
+          const lesson = form.lessonItems[i];
+          if (lesson.title) {
+            await api.addVideoToCourse(course.id, {
+              title: lesson.title,
+              description: "", 
+              videoUrlR2: lesson.videoDataUrl, 
+              orderIndex: i + 1
+            });
+          }
+        }
+      }
+
+      await fetchCourses();
+      resetEditor();
+      handlePostSave();
+    } catch (error) {
+      console.error("Submission failed", error);
+      alert("Failed to save course to database.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -186,22 +235,22 @@ export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
               CANCEL EDIT
             </button>
           )}
-          <button type="submit" className="bg-[#600694] text-white px-8 py-3 rounded-full font-bold hover:bg-[#4a0473] transition-all">
-            {editingId ? "UPDATE COURSE" : "SAVE COURSE"}
+          <button type="submit" disabled={isLoading} className="bg-[#600694] text-white px-8 py-3 rounded-full font-bold hover:bg-[#4a0473] transition-all disabled:opacity-50">
+            {isLoading ? "SAVING TO DB..." : (editingId ? "UPDATE COURSE" : "SAVE COURSE")}
           </button>
         </div>
       </form>
 
       {courses.length > 0 && (
         <div className="mt-10 space-y-4 border-t border-gray-100 pt-6">
-          <p className="text-xs uppercase tracking-[0.06em] text-muted-foreground">Managed Courses</p>
+          <p className="text-xs uppercase tracking-[0.06em] text-muted-foreground">Live Database Courses</p>
           {courses.map((course) => (
             <div key={course.id} className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
                 <img src={course.imageDataUrl || makeFallbackImage("Course")} alt={course.title} className="h-16 w-24 rounded-lg border border-border object-cover" />
                 <div>
                   <p className="text-sm font-bold text-foreground">{course.title}</p>
-                  <p className="text-xs text-muted-foreground">INR: ₹{course.priceINR} | USD: ${course.priceUSD}</p>
+                  <p className="text-xs text-muted-foreground">INR: ₹{course.priceInr} | USD: ${course.priceUsd}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">

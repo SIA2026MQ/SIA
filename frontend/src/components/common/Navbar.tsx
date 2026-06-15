@@ -1,20 +1,17 @@
 import { useEffect, useState, useRef } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { 
   ChevronDown, LogIn, LogOut, Menu, ShoppingCart, X, 
-  User, LayoutDashboard 
+  User, LayoutDashboard, Radio
 } from "lucide-react";
 
-// Validated Asset & Layout Data hooks imports
 import satsungLogo from "@/assets/logo.png";
 import { useCart } from "@/components/common/CartContext";
 import { navLinks } from "@/utils/constants";
-
-// ✅ Real Auth Hook Restored
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 
-// Merged Dataset Configuration combining older TanStack searches into path endpoints
 const navWithDropdowns = [
   {
     label: "SIA",
@@ -28,12 +25,9 @@ const navWithDropdowns = [
   },
   {
     label: "Events",
-    to: "/events",
     children: [
-      { label: "All Events", to: "/events?filter=all" },
-      { label: "Free Satsangs", to: "/events?filter=satsang" },
-      { label: "Webinars", to: "/events?filter=webinar" },
-      { label: "Retreats", to: "/events?filter=retreat" },
+      { label: "Satsangs", to: "/satsungs" },
+      { label: "Retreats", to: "/retreats" },
     ],
   },
   {
@@ -53,13 +47,33 @@ export function Navbar() {
   const [menuUser, setMenuUser] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   
+  // LIVE SESSION STATE
+  const [liveSession, setLiveSession] = useState<{ zoomLink: string, title: string } | null>(null);
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
-  const { itemCount, setOpen: setCartOpen } = useCart();
+  const navigate = useNavigate();
+  const { itemCount } = useCart();
   
-  // ✅ Live Auth State Integration
   const { dbUser, logout, loading } = useAuth();
   const isAdmin = dbUser?.role === "ADMIN";
+
+  // Check for live session today
+  useEffect(() => {
+    const fetchSession = async () => {
+        
+      try {
+        const res = await api.getTodaySession();
+        if (res && res.session) {
+          setLiveSession(res.session);
+        }
+      } catch (error) {
+        // Suppress 404s (Normal when no session exists today)
+        setLiveSession(null);
+      }
+    };
+    fetchSession();
+  }, [dbUser]); // Re-run if user logs in to get the unlocked link
 
   useEffect(() => {
     const onScroll = () => setCompact(window.scrollY > 24);
@@ -68,7 +82,6 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Dropdown dismissal tracking system loop
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -86,11 +99,7 @@ export function Navbar() {
     setMenuUser(false);
   }, [location.pathname, location.search]);
 
-  // =========================================================================
-  // PAGE-SPECIFIC STYLING LOGIC
-  // =========================================================================
   const isHome = location.pathname === "/";
-  // The navbar needs a solid background if: it's NOT the home page OR user scrolled OR menu is open
   const needsSolidBg = !isHome || compact || open;
 
   return (
@@ -103,7 +112,7 @@ export function Navbar() {
     >
       <div className="sia-container flex h-full items-center justify-between gap-3 md:gap-6 lg:gap-10 px-4 sm:px-6">
         
-        {/* LOGO LINK AREA */}
+        {/* LOGO */}
         <Link to="/" className="flex min-w-0 items-center gap-3" aria-label="SIA Home">
           <img
             src={satsungLogo}
@@ -112,7 +121,7 @@ export function Navbar() {
           />
         </Link>
 
-        {/* DESKTOP NAVIGATION INTERFACE */}
+        {/* DESKTOP NAVIGATION */}
         <nav className="hidden flex-1 items-center justify-center gap-8 xl:flex" aria-label="Main navigation">
           {navLinks.map((link) => {
             const hasDropdown = navWithDropdowns.find((item) => item.to === link.to);
@@ -120,7 +129,6 @@ export function Navbar() {
 
             if (hasDropdown) {
               const isDropdownOpen = activeDropdown === link.to;
-
               return (
                 <div
                   key={link.to}
@@ -135,7 +143,6 @@ export function Navbar() {
                     <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
                   </div>
 
-                  {/* Desktop Extended Dropdown Items list menu */}
                   <div
                     className={`absolute left-1/2 top-full z-30 w-56 -translate-x-1/2 rounded-xl border border-border bg-card p-2 shadow-lg transition-all duration-200 ${
                       isDropdownOpen 
@@ -149,16 +156,13 @@ export function Navbar() {
                         to={child.to}
                         className="block rounded-lg px-3 py-2 text-sm font-medium text-foreground/85 transition hover:bg-accent hover:text-primary"
                         onBlur={() => {
-                          if (childIdx === hasDropdown.children.length - 1) {
-                            setActiveDropdown(null);
-                          }
+                          if (childIdx === hasDropdown.children.length - 1) setActiveDropdown(null);
                         }}
                       >
                         {child.label}
                       </Link>
                     ))}
                   </div>
-
                   {active && <span className={`absolute bottom-2 left-0 h-0.5 w-full transition-colors ${needsSolidBg ? 'bg-primary' : 'bg-white'}`} />}
                 </div>
               );
@@ -187,7 +191,28 @@ export function Navbar() {
         {/* RIGHT ACTION BUTTONS */}
         <div className="flex items-center gap-2 md:gap-3">
           
-          {/* USER PROFILE ACCOUNT DROPDOWN CONTROL LAYER */}
+          {/* LIVE SESSION BUTTON (Dynamically Appears) */}
+          {/* LIVE SESSION BUTTON (Dynamically Appears) */}
+          {liveSession && (
+            <a
+              href={liveSession.zoomLink !== 'LOCKED' ? liveSession.zoomLink : '#'}
+              target={liveSession.zoomLink !== 'LOCKED' ? "_blank" : "_self"} // Opens in new tab
+              rel="noopener noreferrer" // Security best practice for new tabs
+              onClick={(e) => {
+                if (liveSession.zoomLink === 'LOCKED') {
+                  e.preventDefault();
+                  alert("🔒 Active Subscription Required to join the live session! Please subscribe to gain access.");
+                  navigate('/events');
+                }
+              }}
+              className="hidden lg:flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg transition-transform hover:scale-105"
+            >
+              <Radio className="h-4 w-4 animate-pulse" />
+              Live Now
+            </a>
+          )}
+
+          {/* USER PROFILE DROPDOWN */}
           <div className="hidden md:block relative" ref={dropdownRef}>
             {!loading && dbUser ? (
               <div className="relative">
@@ -228,7 +253,7 @@ export function Navbar() {
                           </Link>
                         ) : (
                           <>
-                            <Link to="/my-learning" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">My learning</Link>
+                            <Link to="/my-learning" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">My Dashboard</Link>
                             <Link to="/cart" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">My cart</Link>
                             <Link to="/wishlist" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">Wishlist</Link>
                             <Link to="/account" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">Account settings</Link>
@@ -271,7 +296,7 @@ export function Navbar() {
             )}
           </Link>
 
-          {/* MOBILE TOGGLE DRAWER ACTION BUTTON */}
+          {/* MOBILE TOGGLE DRAWER */}
           <button
             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white text-primary shadow-md transition-transform hover:scale-105 xl:hidden"
             onClick={() => setOpen((v) => !v)}
@@ -292,6 +317,27 @@ export function Navbar() {
             exit={{ opacity: 0 }}
           >
             <div className="mx-auto w-full max-w-lg space-y-4">
+              
+              {/* MOBILE LIVE SESSION ALERT */}
+              {liveSession && (
+                <a
+                  href={liveSession.zoomLink !== 'LOCKED' ? liveSession.zoomLink : '#'}
+                  target={liveSession.zoomLink !== 'LOCKED' ? "_blank" : "_self"}
+                  onClick={(e) => {
+                    if (liveSession.zoomLink === 'LOCKED') {
+                      e.preventDefault();
+                      alert("🔒 Active Subscription Required to join the live session!");
+                      setOpen(false);
+                      navigate('/events');
+                    }
+                  }}
+                  className="block rounded-xl border border-red-500 bg-red-50 px-4 py-3 font-display text-xl text-red-600 text-center animate-pulse"
+                >
+                  <Radio className="inline h-5 w-5 mr-2 -mt-1" />
+                  Live Session In Progress
+                </a>
+              )}
+
               <Link to="/" className="block rounded-xl border border-border bg-card px-4 py-3 font-display text-2xl text-primary" onClick={() => setOpen(false)}>
                 Home
               </Link>

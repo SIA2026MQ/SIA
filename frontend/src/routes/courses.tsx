@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactPlayer from "react-player";
@@ -8,21 +8,53 @@ import retreatMountain from "@/assets/retreat-mountain.jpg";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useCart } from "@/components/common/CartContext";
 import { useRegionalPricing } from "@/hooks/useRegionalPricing";
-import { useSiteContent } from "@/hooks/useSiteContent";
+import { api } from "@/lib/api"; // <-- Import the API
 
 export default function CoursesPage() {
   const [searchParams] = useSearchParams();
-  const { courses } = useSiteContent();
+  const [dbCourses, setDbCourses] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
 
-  // Determine active category from URL (?cat=practices or ?cat=scriptures)
   const activeCat = searchParams.get("cat") || "practices";
 
-  // Filter content based ONLY on the active URL category
+  // Fetch live catalog from database
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      try {
+        const res = await api.getAllCourses();
+        
+        // Map backend camelCase fields to match your frontend components
+        const formatted = res.courses.map((c: any) => ({
+          ...c,
+          priceINR: c.priceInr,
+          priceUSD: c.priceUsd,
+          category: c.category || (c.title.toLowerCase().includes("scripture") ? "Scriptures" : "Practices"),
+          imageUrl: c.imageDataUrl || null,
+          duration: c.duration || "Self-paced",
+          lessons: c.videos?.length || 0,
+          rating: c.rating || 5.0,
+        }));
+        
+        setDbCourses(formatted);
+      } catch (error) {
+        console.error("Failed to fetch courses from DB", error);
+      }
+    };
+    fetchCatalog();
+  }, []);
+
+  // Filter content based on URL category
+  // Filter content based on URL category
   const filteredCourses = useMemo(() => {
-    const categoryFilter = activeCat === "practices" ? "Practices" : "Scriptures";
-    return courses.filter((c) => c.category === categoryFilter);
-  }, [courses, activeCat]);
+    // 1. Get the URL param (e.g., "scriptures")
+    const activeCatLower = (activeCat || "practices").toLowerCase();
+    
+    // 2. Format it to match your Prisma Enum ("Scriptures" or "Practices")
+    const dbCategoryFilter = activeCatLower === "scriptures" ? "Scriptures" : "Practices";
+    
+    // 3. Filter using the strict DB column
+    return dbCourses.filter((c) => c.category === dbCategoryFilter);
+  }, [dbCourses, activeCat]);
 
   return (
     <AnimatedPage>
@@ -41,7 +73,6 @@ export default function CoursesPage() {
 
       <section className="section-odd py-14">
         <div className="sia-container grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {/* FIX: Removed mode="wait" for lists. */}
           <AnimatePresence>
             {filteredCourses.map((course, index) => (
               <CourseCard 
@@ -60,6 +91,8 @@ export default function CoursesPage() {
     </AnimatedPage>
   );
 }
+
+// ... (Keep CourseCard and CourseModal exactly as they are) ...
 
 // ----------------------------------------------------------------------
 

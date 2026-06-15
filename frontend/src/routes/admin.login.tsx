@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
                   // Set the secret key that AdminPage.tsx is looking for
                   window.localStorage.setItem("sia-admin-auth", "true");
                   // Redirect directly to the dashboard
-                  navigate("/admin");
+                  navigate("/admin/login");
                 } else {
                   setError("Invalid admin credentials");
                 }

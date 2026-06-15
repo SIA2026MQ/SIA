@@ -3,13 +3,13 @@ import { Footer } from "@/components/common/Footer";
 import { Navbar } from "@/components/common/Navbar";
 import AboutPage from "@/routes/about";
 import AdminPage from "@/routes/admin";
-import AdminLoginPage from "@/routes/admin.login";
+import SatsungsPage from "./routes/satsungs";
 import CartPage from "@/routes/cart";
 import BlogDetailPage from "@/routes/blog.$slug";
 import BlogPage from "@/routes/blog";
 import ContactPage from "@/routes/contact";
 import CoursesPage from "@/routes/courses";
-import EventsPage from "@/routes/events";
+
 import HomePage from "@/routes/index";
 import LoginPage from "@/routes/login";
 import SIAPage from "@/routes/sia";
@@ -18,6 +18,7 @@ import PrivacyPolicy from "./components/legal/PrivacyPolicy";
 import TermsConditions from "./components/legal/TermsCondiction";
 import CancellationPolicy from "./components/legal/CacellationPolicy";
 import MyLearningPage from "@/routes/my-learning";
+import RetreatsPage from "@/routes/retreats";
 function NotFoundPage() {
   return (
     <section className="section-odd min-h-screen pt-32">
@@ -37,7 +38,6 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/sia" element={<SIAPage />} />
-          <Route path="/events" element={<EventsPage />} />
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/blog" element={<BlogPage />} />
@@ -45,12 +45,14 @@ export default function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cart" element={<CartPage />} />
-          <Route path="/admin/login" element={<AdminLoginPage />} />
+          
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-conditions" element={<TermsConditions />} />
           <Route path="/cancellation-policy" element={<CancellationPolicy />} />
           <Route path="/my-learning" element={<MyLearningPage />} />
+          <Route path="/satsungs" element={<SatsungsPage />} />
+          <Route path="/retreats" element={<RetreatsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>

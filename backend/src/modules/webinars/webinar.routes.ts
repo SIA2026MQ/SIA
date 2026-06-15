@@ -1,16 +1,20 @@
 import { Router } from 'express';
-import { createWebinar, getUpcomingWebinars, redeemWebinarCredit } from './webinar.controller';
+import { 
+  getWebinars, 
+  createWebinar, 
+  updateWebinar, 
+  deleteWebinar 
+} from './webinar.controller';
 import { authenticateJWT, requireAdmin } from '../../core/middlewares/auth.middleware';
 
 const router = Router();
 
-// Endpoint: GET /api/webinars (Public viewing, links are locked based on auth)
-router.get('/', getUpcomingWebinars);
+// Public Route (Users need to see the webinars too!)
+router.get('/', getWebinars);
 
-// Endpoint: POST /api/webinars (ONLY Admins)
+// Admin Routes (Protected)
 router.post('/', authenticateJWT, requireAdmin, createWebinar);
-
-// Endpoint: POST /api/webinars/redeem (Authenticated users spending a credit)
-router.post('/redeem', authenticateJWT, redeemWebinarCredit);
+router.put('/:id', authenticateJWT, requireAdmin, updateWebinar);
+router.delete('/:id', authenticateJWT, requireAdmin, deleteWebinar);
 
 export default router;

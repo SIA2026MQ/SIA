@@ -21,10 +21,14 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  courseAccess  CourseAccess[]
-  webinarAccess WebinarAccess[]      
-  subscription  UserSubscription?    
-  orders        Order[]
+  courseAccess        CourseAccess[]
+  webinarAccess       WebinarAccess[]      
+  subscription        UserSubscription?    
+  orders              Order[]
+  
+  // FIXED: Added missing relation for Retreat Applications
+  retreatApplications RetreatApplication[]
+  groupRequests       GroupDiscountRequest[]
 }
 
 enum Role {
@@ -35,15 +39,22 @@ enum Role {
 // -----------------------------------------------------------------------------
 // 2. COURSES (Lifetime Access)
 // -----------------------------------------------------------------------------
+
+enum CourseCategory {
+  Practices
+  Scriptures
+}
+
 model Course {
-  id            String   @id @default(uuid())
+  id            String         @id @default(uuid())
   title         String
-  description   String   @db.Text
-  priceInr      Float    
-  priceUsd      Float    
-  isPublished   Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  description   String         @db.Text
+  category      CourseCategory 
+  priceInr      Float  
+  priceUsd      Float  
+  isPublished   Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   videos        CourseVideo[]
   accessLedger  CourseAccess[]
@@ -84,6 +95,7 @@ model Webinar {
   minPriceInr   Float    // UPDATED: Allows "Pay What You Want" above minimum
   minPriceUsd   Float
   scheduledFor  DateTime
+  imageUrl    String?
   createdAt     DateTime @default(now())
 
   accessLedger  WebinarAccess[]
@@ -138,7 +150,6 @@ model UserSubscription {
   plan              SubscriptionPlan @relation(fields: [planId], references: [id])
 }
 
-
 // -----------------------------------------------------------------------------
 // 5. BLOGS
 // -----------------------------------------------------------------------------
@@ -174,7 +185,8 @@ model Order {
   status            OrderStatus @default(PENDING)
   itemType          ItemType    
   itemId            String      
-
+  couponId          String?
+  coupon            Coupon?     @relation(fields: [couponId], references: [id])
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -191,4 +203,83 @@ enum ItemType {
   COURSE
   WEBINAR
   SUBSCRIPTION
+  RETREAT
+}
+
+// -----------------------------------------------------------------------------
+// 7. RETREATS & APPLICATIONS
+// -----------------------------------------------------------------------------
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model Retreat {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  location    String
+  startDate   DateTime
+  endDate     DateTime
+  priceInr    Float
+  imageUrl    String?  // 🚨 ADD THIS LINE!
+  createdAt   DateTime @default(now())
+
+  applications RetreatApplication[]
+}
+
+model RetreatApplication {
+  id        String   @id @default(uuid())
+  userId    String
+  retreatId String
+  
+  // User Form Details
+  name      String
+  email     String
+  phone     String
+  
+  // Tracking
+  status    ApplicationStatus @default(PENDING)
+  orderId   String?  @unique // Will link to Razorpay Order once approved & paid
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+  retreat   Retreat  @relation(fields: [retreatId], references: [id])
+
+  @@unique([userId, retreatId]) // A user can only apply once per retreat
+}
+
+// -----------------------------------------------------------------------------
+// 8. COUPONS & DISCOUNTS
+// -----------------------------------------------------------------------------
+
+model GroupDiscountRequest {
+  id          String   @id @default(uuid())
+  userId      String   // The person organizing the group
+  memberCount Int
+  emails      String[] // Array of their friends' emails
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Coupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  discountPercent Float
+  maxUses         Int
+  usedCount       Int       @default(0)
+  isActive        Boolean   @default(true)
+  expiryDate      DateTime? 
+  
+  // ANTI-FRAUD FIELD: Only these specific emails can use this coupon
+  allowedEmails   String[]  
+
+  orders          Order[]
+  createdAt       DateTime  @default(now())
 }

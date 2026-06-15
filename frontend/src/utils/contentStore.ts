@@ -114,14 +114,6 @@ export function saveManagedWebinars(value: ManagedWebinar[]) {
   saveArray(KEYS.webinars, value);
 }
 
-export function loadManagedRetreats() {
-  return loadArray<ManagedRetreat>(KEYS.retreats);
-}
-
-export function saveManagedRetreats(value: ManagedRetreat[]) {
-  saveArray(KEYS.retreats, value);
-}
-
 export function loadManagedBlogs() {
   return loadArray<ManagedBlog>(KEYS.blogs);
 }

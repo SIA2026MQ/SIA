@@ -3,9 +3,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { S3Client } from '@aws-sdk/client-s3';
+import multerS3 from 'multer-s3';
 
 // Route Imports
 import authRoutes from './modules/users/auth.routes';
@@ -15,24 +16,23 @@ import sessionRoutes from './modules/sessions/session.routes';
 import webinarRoutes from './modules/webinars/webinar.routes';
 import blogRoutes from './modules/blogs/blog.routes';
 import { sendEmail } from './core/services/mail.service';
+import retreatRoutes from './modules/retreats/retreat.routes';
 
 dotenv.config();
 
 const app: Application = express();
 
 // -----------------------------------------------------------------------------
-// 1. Cloud Infrastructure Setup (CRITICAL FOR DEPLOYMENT)
+// 1. Cloud Infrastructure Setup
 // -----------------------------------------------------------------------------
-// If you host on Render, Heroku, AWS, or behind Cloudflare, you MUST trust the proxy
-// otherwise the Rate Limiter will block all users thinking they share the same IP.
 app.set('trust proxy', 1);
 
 // -----------------------------------------------------------------------------
-// 2. SECURE CORS (Must be absolute top so preflight passes!)
+// 2. SECURE CORS
 // -----------------------------------------------------------------------------
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:8081'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-razorpay-signature'],
   credentials: true,
 }));
@@ -45,11 +45,11 @@ app.use(helmet({
 }));
 
 // -----------------------------------------------------------------------------
-// 4. Global Rate Limiting (Adjusted for SPAs)
+// 4. Global Rate Limiting
 // -----------------------------------------------------------------------------
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // 1000 requests per IP (100 is too low for a React app loading images/data)
+  windowMs: 15 * 60 * 1000, 
+  max: 1000, 
   message: { error: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -57,80 +57,77 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // -----------------------------------------------------------------------------
-// 5. THE RAZORPAY WEBHOOK BYPASS (MUST BE BEFORE EXPRESS.JSON)
+// 5. THE RAZORPAY WEBHOOK BYPASS
 // -----------------------------------------------------------------------------
-// Razorpay signature validation will fail if express.json() formats the string.
-// We capture the raw buffer ONLY for this specific webhook route.
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
-
-// Parse standard JSON for all other routes
 app.use(express.json());
 
 // -----------------------------------------------------------------------------
-// 6. Create upload directories if they don't exist
+// 6. Cloudflare R2 (S3) Configuration
 // -----------------------------------------------------------------------------
-const uploadDir = path.join(process.cwd(), 'uploads');
-const imagesDir = path.join(uploadDir, 'images');
-const videosDir = path.join(uploadDir, 'videos');
-
-[uploadDir, imagesDir, videosDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-    console.log(`📁 Created directory: ${dir}`);
-  }
-});
-
-// -----------------------------------------------------------------------------
-// 7. Multer configuration for local file storage (Secured)
-// -----------------------------------------------------------------------------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, imagesDir);
-    } else {
-      cb(null, videosDir);
-    }
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+const s3 = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
   },
 });
 
+// -----------------------------------------------------------------------------
+// 7. Multer S3 Configuration (Direct Upload to Cloudflare)
+// -----------------------------------------------------------------------------
 const upload = multer({
-  storage,
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.R2_BUCKET_NAME || 'sia-assets',
+    // Generate the path and filename in the bucket
+    key: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      // 🚨 UPDATED: Now all images go to an 'images' folder instead of 'retreats'
+      const folder = file.mimetype.startsWith('image/') ? 'raw_uploads/images/' : 'raw_uploads/videos/';
+      const cleanFileName = file.originalname.replace(/\s+/g, '_');
+      cb(null, folder + uniqueSuffix + '-' + cleanFileName);
+    }
+  }),
   limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
 });
 
 // -----------------------------------------------------------------------------
-// 8. Serve static uploaded files (With explicit Cross-Origin Bypass)
+// 8. Generic file upload endpoint (With S3 Error Handling)
 // -----------------------------------------------------------------------------
-app.use('/uploads', (req, res, next) => {
-  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
-  next();
-}, express.static(uploadDir));
+app.post('/api/upload', (req, res) => {
+  const uploadSingle = upload.single('file');
 
-// -----------------------------------------------------------------------------
-// 9. Generic file upload endpoint (images & videos)
-// -----------------------------------------------------------------------------
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-  const subfolder = req.file.mimetype.startsWith('image/') ? 'images' : 'videos';
-  const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${subfolder}/${req.file.filename}`;
-  res.json({ url: fileUrl });
+  uploadSingle(req, res, (err: any) => {
+    // 1. Catch S3 / Cloudflare Connection Errors
+    if (err) {
+      console.error("🚨 CLOUDFLARE/MULTER ERROR:", err);
+      return res.status(500).json({ error: 'Upload to Cloudflare failed', details: err.message });
+    }
+    
+    // 2. Catch Missing Files
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    // 3. Success! Return the URL
+    const fileKey = (req.file as any).key;
+    const fileUrl = `${process.env.R2_PUBLIC_URL}/${fileKey}`;
+    
+    res.json({ url: fileUrl });
+  });
 });
 
 // -----------------------------------------------------------------------------
-// 10. Health check
+// 9. Health check
 // -----------------------------------------------------------------------------
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'success', message: 'Server is running perfectly.' });
 });
 
 // -----------------------------------------------------------------------------
-// 11. Mount API routes
+// 10. Mount API routes
 // -----------------------------------------------------------------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
@@ -138,33 +135,6 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/webinars', webinarRoutes);
 app.use('/api/blogs', blogRoutes);
-
-// -----------------------------------------------------------------------------
-// 12. Temporary email test route
-// -----------------------------------------------------------------------------
-app.post('/api/test-email', async (req, res) => {
-  try {
-    const { targetEmail } = req.body;
-    if (!targetEmail) {
-      res.status(400).json({ error: 'Please provide a targetEmail in the body' });
-      return;
-    }
-    console.log(`Attempting to send test email to ${targetEmail}...`);
-    await sendEmail(
-      targetEmail,
-      'Test Mail: Shifting Into Awareness',
-      `
-        <div style="font-family: sans-serif; text-align: center; padding: 20px;">
-          <h2 style="color: #4A90E2;">Backend Integration Successful! 🚀</h2>
-          <p>If you are reading this, your Amazon SES / Resend SMTP credentials are working perfectly inside your Node.js application.</p>
-        </div>
-      `
-    );
-    res.status(200).json({ message: `Success! Email fired off to ${targetEmail}` });
-  } catch (error: any) {
-    console.error('Test Email Failed:', error);
-    res.status(500).json({ error: 'Failed to send email', details: error.message });
-  }
-});
+app.use('/api/retreats', retreatRoutes);
 
 export default app;

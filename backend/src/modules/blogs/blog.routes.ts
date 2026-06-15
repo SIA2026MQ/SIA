@@ -15,8 +15,8 @@ const router = Router();
 // PUBLIC ROUTES
 // ==========================================
 router.get('/', getAllBlogs);
+router.get('/slug/:slug', getBlogBySlug);   
 router.get('/:blogId', getBlogById);
-router.get('/slug/:slug', getBlogBySlug);   // <-- New route
 
 // ==========================================
 // ADMIN ONLY ROUTES
