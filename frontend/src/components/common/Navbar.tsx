@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { 
   ChevronDown, LogIn, LogOut, Menu, ShoppingCart, X, 
-  User, LayoutDashboard, Radio
+  User, LayoutDashboard, Radio, Award, ShieldBan 
 } from "lucide-react";
 
 import satsungLogo from "@/assets/logo.png";
@@ -20,7 +20,7 @@ const navWithDropdowns = [
       { label: "All About SiA", to: "/sia?tab=about" },
       { label: "Jake Light", to: "/sia?tab=jake" },
       { label: "Activities", to: "/sia?tab=activities" },
-      { label: "Join", to: "/sia?tab=mission" },
+      
     ],
   },
   {
@@ -28,6 +28,7 @@ const navWithDropdowns = [
     children: [
       { label: "Satsangs", to: "/satsungs" },
       { label: "Retreats", to: "/retreats" },
+      { label: "Webinars", to: "/webinars" },
     ],
   },
   {
@@ -47,8 +48,7 @@ export function Navbar() {
   const [menuUser, setMenuUser] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   
-  // LIVE SESSION STATE
-  const [liveSession, setLiveSession] = useState<{ zoomLink: string, title: string } | null>(null);
+  const [liveSession, setLiveSession] = useState<{ id: string, zoomLink: string, title: string, time?: string } | null>(null);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -56,24 +56,32 @@ export function Navbar() {
   const { itemCount } = useCart();
   
   const { dbUser, logout, loading } = useAuth();
+  
   const isAdmin = dbUser?.role === "ADMIN";
+  const isBlocked = dbUser?.isBlocked === true;
 
-  // Check for live session today
+  // 🚨 This automatically reacts to the Enable/Disable toggle in the backend!
   useEffect(() => {
     const fetchSession = async () => {
-        
+      if (!dbUser || isBlocked) {
+        setLiveSession(null);
+        return;
+      }
+
       try {
         const res = await api.getTodaySession();
         if (res && res.session) {
           setLiveSession(res.session);
+        } else {
+          setLiveSession(null);
         }
       } catch (error) {
-        // Suppress 404s (Normal when no session exists today)
         setLiveSession(null);
       }
     };
+    
     fetchSession();
-  }, [dbUser]); // Re-run if user logs in to get the unlocked link
+  }, [dbUser, isBlocked]); 
 
   useEffect(() => {
     const onScroll = () => setCompact(window.scrollY > 24);
@@ -102,6 +110,11 @@ export function Navbar() {
   const isHome = location.pathname === "/";
   const needsSolidBg = !isHome || compact || open;
 
+  const getAbsoluteUrl = (link?: string) => {
+    if (!link || link.includes('LOCKED')) return '#';
+    return link.startsWith('http') ? link : `https://${link}`;
+  };
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
@@ -112,7 +125,6 @@ export function Navbar() {
     >
       <div className="sia-container flex h-full items-center justify-between gap-3 md:gap-6 lg:gap-10 px-4 sm:px-6">
         
-        {/* LOGO */}
         <Link to="/" className="flex min-w-0 items-center gap-3" aria-label="SIA Home">
           <img
             src={satsungLogo}
@@ -121,7 +133,6 @@ export function Navbar() {
           />
         </Link>
 
-        {/* DESKTOP NAVIGATION */}
         <nav className="hidden flex-1 items-center justify-center gap-8 xl:flex" aria-label="Main navigation">
           {navLinks.map((link) => {
             const hasDropdown = navWithDropdowns.find((item) => item.to === link.to);
@@ -188,31 +199,40 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* RIGHT ACTION BUTTONS */}
         <div className="flex items-center gap-2 md:gap-3">
           
-          {/* LIVE SESSION BUTTON (Dynamically Appears) */}
-          {/* LIVE SESSION BUTTON (Dynamically Appears) */}
-          {liveSession && (
-            <a
-              href={liveSession.zoomLink !== 'LOCKED' ? liveSession.zoomLink : '#'}
-              target={liveSession.zoomLink !== 'LOCKED' ? "_blank" : "_self"} // Opens in new tab
-              rel="noopener noreferrer" // Security best practice for new tabs
-              onClick={(e) => {
-                if (liveSession.zoomLink === 'LOCKED') {
+          {/* 🚨 DESKTOP LIVE SESSION BUTTON */}
+          {dbUser && liveSession && !isBlocked && (
+            <div className="hidden lg:flex items-center gap-3">
+              <button
+                onClick={async (e) => {
                   e.preventDefault();
-                  alert("🔒 Active Subscription Required to join the live session! Please subscribe to gain access.");
-                  navigate('/events');
-                }
-              }}
-              className="hidden lg:flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg transition-transform hover:scale-105"
-            >
-              <Radio className="h-4 w-4 animate-pulse" />
-              Live Now
-            </a>
+                  
+                  if (!liveSession.zoomLink || liveSession.zoomLink.includes('LOCKED')) {
+                    navigate('/satsungs');
+                    return; 
+                  }
+                  
+                  if (liveSession.id) {
+                    const newTab = window.open('about:blank', '_blank');
+                    
+                    try {
+                      await api.logSessionAttendance(liveSession.id);
+                      if (newTab) newTab.location.href = getAbsoluteUrl(liveSession.zoomLink);
+                    } catch (err) {
+                      if (newTab) newTab.close();
+                      console.error("Failed to log attendance", err);
+                    }
+                  }
+                }}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg transition-transform hover:scale-105"
+              >
+                <Radio className="h-4 w-6 animate-pulse" />
+                Today's Session {liveSession.time ? liveSession.time : ''}
+              </button>
+            </div>
           )}
 
-          {/* USER PROFILE DROPDOWN */}
           <div className="hidden md:block relative" ref={dropdownRef}>
             {!loading && dbUser ? (
               <div className="relative">
@@ -241,7 +261,20 @@ export function Navbar() {
                           {dbUser.name ? dbUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : "S"}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-bold text-foreground text-sm truncate">{dbUser.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-bold text-sm truncate ${isBlocked ? 'text-red-600 line-through' : 'text-foreground'}`}>{dbUser.name}</span>
+                            {isBlocked ? (
+                              <div className="flex items-center gap-1 bg-red-600 text-white px-2 py-0.5 rounded-full shadow-sm" title="Account Suspended">
+                                <ShieldBan className="h-3 w-3 text-white" />
+                                <span className="text-[9px] font-bold uppercase tracking-wide">Suspended</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 bg-gradient-to-r from-[#600694] to-[#8b1ed1] text-white px-2 py-0.5 rounded-full shadow-sm" title="Your Spiritual Level">
+                                <Award className="h-3 w-3 text-yellow-300" />
+                                <span className="text-[9px] font-bold uppercase tracking-wide">Lvl {dbUser.level || 1}</span>
+                              </div>
+                            )}
+                          </div>
                           <span className="text-muted-foreground text-xs truncate">{dbUser.email}</span>
                         </div>
                       </div>
@@ -254,7 +287,7 @@ export function Navbar() {
                         ) : (
                           <>
                             <Link to="/my-learning" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">My Dashboard</Link>
-                            <Link to="/cart" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">My cart</Link>
+                            {!isBlocked && <Link to="/cart" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">My cart</Link>}
                             <Link to="/wishlist" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">Wishlist</Link>
                             <Link to="/account" className="block px-4 py-2 text-foreground hover:bg-accent rounded-lg">Account settings</Link>
                           </>
@@ -282,21 +315,21 @@ export function Navbar() {
             )}
           </div>
 
-          {/* SHOPPING CART LINK */}
           <Link
-            to="/cart"
-            className="relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white text-primary shadow-md transition-transform hover:scale-105"
+            to={isBlocked ? "#" : "/cart"}
+            onClick={(e) => isBlocked && e.preventDefault()}
+            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white shadow-md transition-transform ${isBlocked ? 'text-gray-300 opacity-50 cursor-not-allowed' : 'text-primary hover:scale-105'}`}
             aria-label="View cart"
+            title={isBlocked ? "Cart disabled" : "View cart"}
           >
             <ShoppingCart className="h-4 w-4" />
-            {itemCount > 0 && (
+            {itemCount > 0 && !isBlocked && (
               <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-white border-2 border-white">
                 {itemCount}
               </span>
             )}
           </Link>
 
-          {/* MOBILE TOGGLE DRAWER */}
           <button
             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white text-primary shadow-md transition-transform hover:scale-105 xl:hidden"
             onClick={() => setOpen((v) => !v)}
@@ -307,7 +340,6 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* MOBILE FULLSCREEN DRAWER OVERLAY NAVIGATION */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -318,24 +350,35 @@ export function Navbar() {
           >
             <div className="mx-auto w-full max-w-lg space-y-4">
               
-              {/* MOBILE LIVE SESSION ALERT */}
-              {liveSession && (
-                <a
-                  href={liveSession.zoomLink !== 'LOCKED' ? liveSession.zoomLink : '#'}
-                  target={liveSession.zoomLink !== 'LOCKED' ? "_blank" : "_self"}
-                  onClick={(e) => {
-                    if (liveSession.zoomLink === 'LOCKED') {
-                      e.preventDefault();
-                      alert("🔒 Active Subscription Required to join the live session!");
-                      setOpen(false);
-                      navigate('/events');
+              {/* 🚨 MOBILE LIVE SESSION BUTTON */}
+              {dbUser && liveSession && !isBlocked && (
+                <button
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    
+                    if (!liveSession.zoomLink || liveSession.zoomLink.includes('LOCKED')) {
+                      setOpen(false); 
+                      navigate('/satsungs'); 
+                      return;
+                    }
+
+                    if (liveSession.id) {
+                      const newTab = window.open('about:blank', '_blank');
+                      try {
+                        await api.logSessionAttendance(liveSession.id);
+                        if (newTab) newTab.location.href = getAbsoluteUrl(liveSession.zoomLink);
+                        setOpen(false); 
+                      } catch (err) {
+                        console.error("Failed to log attendance", err);
+                        if (newTab) newTab.close();
+                      }
                     }
                   }}
-                  className="block rounded-xl border border-red-500 bg-red-50 px-4 py-3 font-display text-xl text-red-600 text-center animate-pulse"
+                  className="block w-full rounded-xl border border-red-500 bg-red-50 px-4 py-3 font-display text-xl text-red-600 text-center animate-pulse"
                 >
                   <Radio className="inline h-5 w-5 mr-2 -mt-1" />
                   Live Session In Progress
-                </a>
+                </button>
               )}
 
               <Link to="/" className="block rounded-xl border border-border bg-card px-4 py-3 font-display text-2xl text-primary" onClick={() => setOpen(false)}>
@@ -384,9 +427,27 @@ export function Navbar() {
               })}
             </div>
 
-            <div className="mx-auto mt-7 flex w-full max-w-lg items-center gap-3">
+            <div className="mx-auto mt-7 flex flex-col w-full max-w-lg gap-4 border-t border-gray-100 pt-6">
               {!loading && dbUser ? (
-                <div className="w-full flex flex-col gap-2">
+                <div className="w-full flex flex-col gap-3">
+                  <div className="flex items-center justify-between px-2 mb-2">
+                    <div>
+                      <p className={`font-bold ${isBlocked ? 'text-red-600 line-through' : 'text-primary'}`}>{dbUser.name}</p>
+                      <p className="text-xs text-muted-foreground">{dbUser.email}</p>
+                    </div>
+                    {isBlocked ? (
+                      <div className="flex items-center gap-1 bg-red-600 text-white px-3 py-1 rounded-full shadow-sm">
+                        <ShieldBan className="h-4 w-4 text-white" />
+                        <span className="text-xs font-bold uppercase tracking-wide">Suspended</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 bg-gradient-to-r from-[#600694] to-[#8b1ed1] text-white px-3 py-1 rounded-full shadow-sm">
+                        <Award className="h-4 w-4 text-yellow-300" />
+                        <span className="text-xs font-bold uppercase tracking-wide">Lvl {dbUser.level || 1}</span>
+                      </div>
+                    )}
+                  </div>
+
                   <Link to={isAdmin ? "/admin" : "/my-learning"} className="sia-button-primary text-center py-3 rounded-full font-bold text-sm block" onClick={() => setOpen(false)}>
                     {isAdmin ? "Admin Dashboard" : "My Learning"}
                   </Link>
@@ -395,14 +456,14 @@ export function Navbar() {
                   </button>
                 </div>
               ) : (
-                <>
+                <div className="flex items-center gap-3 w-full">
                   <Link to="/login" className="sia-button-outline flex-1 text-center py-3 rounded-full font-bold text-sm" onClick={() => setOpen(false)}>
                     Login
                   </Link>
                   <Link to="/cart" className="sia-button-primary flex-1 text-center py-3 rounded-full font-bold text-sm bg-[#600694] text-white" onClick={() => setOpen(false)}>
                     Cart ({itemCount})
                   </Link>
-                </>
+                </div>
               )}
             </div>
           </motion.div>

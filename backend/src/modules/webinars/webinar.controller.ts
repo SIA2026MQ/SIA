@@ -9,18 +9,16 @@ import { firebaseAdmin } from '../../core/services/firebase.service';
 export const createWebinar = async (req: Request, res: Response): Promise<void> => {
   try {
     const { title, description, date, time, meetLink, priceInr, imageUrl } = req.body;
-
-    // Combine 'date' and 'time' from frontend into a single Date object for the DB
     const scheduledFor = new Date(`${date}T${time}:00`);
 
     const webinar = await prisma.webinar.create({
       data: {
         title, 
         description, 
-        scheduledFor,           // Maps to DB schema
-        zoomLink: meetLink,     // Maps to DB schema
-        minPriceInr: priceInr,  // Maps to DB schema
-        minPriceUsd: 0,         // Default to 0 since we removed it from UI
+        scheduledFor, 
+        zoomLink: meetLink, 
+        minPriceInr: priceInr, 
+        minPriceUsd: 0, 
         ...(imageUrl && { imageUrl }), 
       },
     });
@@ -41,7 +39,7 @@ export const getWebinars = async (req: Request, res: Response): Promise<void> =>
     today.setHours(0, 0, 0, 0);
 
     const webinars = await prisma.webinar.findMany({
-      where: { scheduledFor: { gte: today } }, // Search using DB schema
+      where: { scheduledFor: { gte: today } }, 
       orderBy: { scheduledFor: 'asc' },
     });
 
@@ -53,14 +51,17 @@ export const getWebinars = async (req: Request, res: Response): Promise<void> =>
       const token = authHeader.split(' ')[1];
       try {
         const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-        if (decodedToken.email) {
-          const user = await prisma.user.findUnique({ where: { email: decodedToken.email } });
+        // 🚨 FIX 1: Look up by 'uid' instead of 'email' to guarantee a match
+        if (decodedToken.uid) {
+          const user = await prisma.user.findUnique({ where: { firebaseUid: decodedToken.uid } });
           if (user) {
             userId = user.id;
             isAdmin = user.role === 'ADMIN';
           }
         }
-      } catch (err) {}
+      } catch (err) {
+        console.error("Token verification failed silently", err);
+      }
     }
 
     const processedWebinars = await Promise.all(webinars.map(async (webinar) => {
@@ -73,7 +74,6 @@ export const getWebinars = async (req: Request, res: Response): Promise<void> =>
         if (access) hasAccess = true;
       }
 
-      // Convert DB 'scheduledFor' back to separate 'date' and 'time' for the frontend
       const dateStr = webinar.scheduledFor.toISOString().split('T')[0];
       const timeStr = webinar.scheduledFor.toISOString().split('T')[1].substring(0, 5);
 
@@ -97,51 +97,60 @@ export const getWebinars = async (req: Request, res: Response): Promise<void> =>
 // -----------------------------------------------------------------------------
 // [AUTHENTICATED] Redeem a Subscription Credit
 // -----------------------------------------------------------------------------
-export const redeemWebinarCredit = async (req: AuthRequest, res: Response): Promise<void> => {
+export const redeemWebinarCredit = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.id;
+    const userId = (req as any).user.id; 
     const { webinarId } = req.body;
-    let unlockedMeetLink = "";
 
-    await prisma.$transaction(async (tx) => {
-      const subscription = await tx.userSubscription.findUnique({ where: { userId } });
-
-      if (!subscription || !subscription.isActive || subscription.expiryDate < new Date()) {
-        throw new Error('No active subscription found.');
-      }
-      if (subscription.remainingCredits <= 0) {
-        throw new Error('No webinar credits remaining. Please upgrade your plan.');
-      }
-
-      const existingAccess = await tx.webinarAccess.findUnique({
-        where: { userId_webinarId: { userId, webinarId } },
-      });
-      if (existingAccess) throw new Error('You already have access to this webinar.');
-
-      const webinar = await tx.webinar.findUnique({ where: { id: webinarId }});
-      if (!webinar) throw new Error('Webinar not found.');
-      
-      unlockedMeetLink = webinar.zoomLink || ""; // Get DB schema zoomLink
-
-      await tx.userSubscription.update({
-        where: { userId },
-        data: { remainingCredits: { decrement: 1 } },
-      });
-
-      await tx.webinarAccess.create({ data: { userId, webinarId } });
-    });
-
-    res.status(200).json({ 
-      meetLink: unlockedMeetLink,
-      message: 'Credit redeemed successfully! The Zoom link is now unlocked.' 
-    });
-  } catch (error: any) {
-    if (error.message.includes('No active') || error.message.includes('No webinar credits') || error.message.includes('already have access')) {
-      res.status(400).json({ error: error.message });
+    if (!webinarId) {
+      res.status(400).json({ error: "Webinar ID is required." });
       return;
     }
-    console.error('Credit Redemption Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+
+    // 🚨 FIX 2: Fetch the webinar so we can send the link back after purchase
+    const webinarToRedeem = await prisma.webinar.findUnique({ where: { id: webinarId } });
+    if (!webinarToRedeem) {
+      res.status(404).json({ error: "Webinar not found." });
+      return;
+    }
+
+    const existingAccess = await prisma.webinarAccess.findUnique({
+      where: { userId_webinarId: { userId, webinarId } }
+    });
+
+    if (existingAccess) {
+      res.status(400).json({ error: "You already have access to this webinar." });
+      return;
+    }
+
+    const subscription = await prisma.userSubscription.findUnique({
+      where: { userId }
+    });
+
+    if (!subscription || !subscription.isActive || subscription.remainingCredits < 1) {
+      res.status(403).json({ error: "You do not have any available webinar credits." });
+      return;
+    }
+
+    await prisma.$transaction([
+      prisma.userSubscription.update({
+        where: { userId },
+        data: { remainingCredits: subscription.remainingCredits - 1 }
+      }),
+      prisma.webinarAccess.create({
+        data: { userId, webinarId }
+      })
+    ]);
+
+    // 🚨 FIX 3: Return the actual link!
+    res.status(200).json({ 
+      message: "Webinar redeemed successfully!",
+      meetLink: webinarToRedeem.zoomLink 
+    });
+
+  } catch (error: any) {
+    console.error('Redeem Webinar Error:', error);
+    res.status(500).json({ error: 'Failed to redeem webinar credit.' });
   }
 };
 
@@ -180,9 +189,9 @@ export const updateWebinar = async (req: Request, res: Response): Promise<void> 
       data: {
         title, 
         description, 
-        scheduledFor,           // Maps to DB schema
-        zoomLink: meetLink,     // Maps to DB schema
-        minPriceInr: priceInr,  // Maps to DB schema
+        scheduledFor, 
+        zoomLink: meetLink, 
+        minPriceInr: priceInr, 
         minPriceUsd: 0,
         ...(imageUrl && { imageUrl }), 
       },

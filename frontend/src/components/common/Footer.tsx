@@ -8,7 +8,6 @@ import logo from "@/assets/satsung-logo.jpg"; // Ensure this matches your asset 
 const NAV_LINKS = [
   { label: "Home", to: "/" },
   { label: "SIA", to: "/sia" },
-  { label: "Events", to: "/events" },
   { label: "Courses", to: "/courses" },
   { label: "About", to: "/about" },
   { label: "Blog", to: "/blog" },

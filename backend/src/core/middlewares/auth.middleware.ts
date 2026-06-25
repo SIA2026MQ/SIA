@@ -63,6 +63,16 @@ export const authenticateJWT = async (req: AuthRequest, res: Response, next: Nex
       console.log(`[AUTH] User role updated to ${role}: ${email}`);
     }
 
+    // 🚨 ABSOLUTE SECURITY GATE: If blocked, reject EVERYTHING!
+    // This stops them from fetching courses, buying items, or accessing webinars.
+    if (user.isBlocked) {
+      res.status(403).json({ 
+        error: "Account Suspended",
+        message: 'Your account has been suspended. You are not authorized to access content or make payments.' 
+      });
+      return;
+    }
+
     req.user = user;
     next();
   } catch (error: any) {

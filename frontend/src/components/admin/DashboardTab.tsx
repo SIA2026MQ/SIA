@@ -1,86 +1,129 @@
-import { Link } from "react-router-dom";
-import { ExternalLink, PlusCircle, Sparkles } from "lucide-react";
-import {
-  loadCoupons, loadManagedBlogs, loadManagedCourses, loadManagedWebinars, loadRetreatInquiries,
-} from "@/utils/contentStore";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
-export function DashboardTab({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
-  // Load the current stats from the store
-  const stats = [
-    { label: "Managed Courses", value: loadManagedCourses().length },
-    { label: "Managed Webinars", value: loadManagedWebinars().length },
-    { label: "Managed Blogs", value: loadManagedBlogs().length },
-    { label: "Coupons", value: loadCoupons().length },
-    { label: "Retreat Inquiries", value: loadRetreatInquiries().length },
-    { label: "Today's Session", value: "Today Live Section" },
-  ];
+interface DashboardTabProps {
+  setActiveTab: (tab: string) => void;
+}
+
+export function DashboardTab({ setActiveTab }: DashboardTabProps) {
+  // State to hold the numbers from the backend
+  const [stats, setStats] = useState({
+    courses: 0,
+    webinars: 0,
+    blogs: 0,
+    coupons: 0,
+    inquiries: 0
+  });
+  
+  const [todaySession, setTodaySession] = useState<{ title: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch the data as soon as the dashboard tab opens
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch stats and today's session at the exact same time for speed
+        const [statsRes, sessionRes] = await Promise.all([
+          api.getAdminStats(),
+          api.getTodaySession().catch(() => null) // Catch 404 if no session today
+        ]);
+
+        if (statsRes) setStats(statsRes);
+        if (sessionRes && sessionRes.session) setTodaySession(sessionRes.session);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-[#600694]" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       
-      {/* ======================================================= */}
-      {/* MISSING STATS GRID RESTORED HERE                          */}
-      {/* ======================================================= */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.map((card) => (
-          <article key={card.label} className="sia-card bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-xs uppercase tracking-[0.06em] text-muted-foreground">
-              {card.label}
-            </p>
-            <p className="mt-2 font-serif text-4xl font-bold text-[#600694]">
-              {card.value}
-            </p>
-          </article>
-        ))}
+      {/* Card 1: Courses */}
+      <div 
+        onClick={() => setActiveTab("courses")}
+        className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center cursor-pointer transition-all hover:-translate-y-1 hover:border-[#600694]/30 hover:shadow-md"
+      >
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Managed Courses</h3>
+        <p className="text-5xl font-display font-bold text-[#600694]">{stats.courses}</p>
       </div>
 
-      {/* ======================================================= */}
-      {/* QUICK ACTIONS & PREVIEW CARDS                             */}
-      {/* ======================================================= */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <article className="sia-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="sia-h3 text-xl font-bold text-[#600694] mb-4">Quick Actions</h2>
-          <div className="grid gap-2">
-            <button className="sia-button-outline justify-start border-[#600694]/20 text-[#600694] hover:bg-[#600694] hover:text-white transition-all w-full text-left px-4 py-2 rounded-lg flex items-center" onClick={() => setActiveTab("courses")}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add a course
-            </button>
-            <button className="sia-button-outline justify-start border-[#600694]/20 text-[#600694] hover:bg-[#600694] hover:text-white transition-all w-full text-left px-4 py-2 rounded-lg flex items-center" onClick={() => setActiveTab("webinars")}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add a webinar
-            </button>
-            <button 
-              className="sia-button-outline justify-start border-[#600694]/20 text-[#600694] hover:bg-[#600694] hover:text-white transition-all w-full text-left px-4 py-2 rounded-lg flex items-center" 
-              onClick={() => setActiveTab("daily-session")} // This triggers the switch
-            >
-              <PlusCircle className="mr-2 h-4 w-4" /> Add daily session
-            </button>
-            <button className="sia-button-outline justify-start border-[#600694]/20 text-[#600694] hover:bg-[#600694] hover:text-white transition-all w-full text-left px-4 py-2 rounded-lg flex items-center" onClick={() => setActiveTab("retreats")}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add a retreat
-            </button>
-            <button className="sia-button-outline justify-start border-[#600694]/20 text-[#600694] hover:bg-[#600694] hover:text-white transition-all w-full text-left px-4 py-2 rounded-lg flex items-center" onClick={() => setActiveTab("blogs")}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add a blog post
-            </button>
-            <button className="sia-button-outline justify-start border-[#600694]/20 text-[#600694] hover:bg-[#600694] hover:text-white transition-all w-full text-left px-4 py-2 rounded-lg flex items-center" onClick={() => setActiveTab("coupons")}>
-              <Sparkles className="mr-2 h-4 w-4" /> Generate coupon
-            </button>
-          </div>
-        </article>
+      {/* Card 2: Webinars */}
+      <div 
+        onClick={() => setActiveTab("webinars")}
+        className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center cursor-pointer transition-all hover:-translate-y-1 hover:border-[#600694]/30 hover:shadow-md"
+      >
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Managed Webinars</h3>
+        <p className="text-5xl font-display font-bold text-[#600694]">{stats.webinars}</p>
+      </div>
 
-        <article className="sia-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="sia-h3 text-xl font-bold text-[#600694]">Store Preview</h2>
-          <p className="mt-2 text-sm text-muted-foreground mb-4">Check frontend views anytime:</p>
-          <div>
-            <Link to="/" className="sia-button-outline border-[#600694] text-[#600694] hover:bg-[#600694] hover:text-white px-4 py-2 rounded-full inline-flex items-center transition-all">
-              <ExternalLink className="mr-2 h-4 w-4" /> Visit Site
-            </Link>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-2 text-sm">
-            {["courses", "blog", "events", "cart"].map(route => (
-              <Link key={route} to={`/${route}`} className="rounded-full border border-[#600694]/30 px-3 py-1.5 text-[#600694] hover:bg-[#600694]/10 transition-colors capitalize">
-                {route}
-              </Link>
-            ))}
-          </div>
-        </article>
+      {/* Card 3: Blogs */}
+      <div 
+        onClick={() => setActiveTab("blogs")}
+        className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center cursor-pointer transition-all hover:-translate-y-1 hover:border-[#600694]/30 hover:shadow-md"
+      >
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Managed Blogs</h3>
+        <p className="text-5xl font-display font-bold text-[#600694]">{stats.blogs}</p>
+      </div>
+
+      {/* Card 4: Coupons */}
+      <div 
+        onClick={() => setActiveTab("coupons")}
+        className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center cursor-pointer transition-all hover:-translate-y-1 hover:border-[#600694]/30 hover:shadow-md"
+      >
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Coupons</h3>
+        <p className="text-5xl font-display font-bold text-[#600694]">{stats.coupons}</p>
+      </div>
+
+      {/* Card 5: Retreat Inquiries */}
+      <div 
+        onClick={() => setActiveTab("inquiries")}
+        className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center cursor-pointer transition-all hover:-translate-y-1 hover:border-[#600694]/30 hover:shadow-md"
+      >
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Retreat Inquiries</h3>
+        <p className="text-5xl font-display font-bold text-[#600694]">{stats.inquiries}</p>
+      </div>
+
+      {/* Card 6: Today's Session */}
+      <div 
+        onClick={() => setActiveTab("daily-session")}
+        className="bg-white p-8 rounded-2xl shadow-sm border border-[#600694]/20 bg-[#600694]/5 flex flex-col justify-center cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md"
+      >
+        <h3 className="text-xs font-bold text-[#600694]/70 uppercase tracking-wider mb-2">Today's Session</h3>
+        <p className="text-3xl font-display font-bold text-[#600694] leading-tight line-clamp-2">
+          {todaySession ? todaySession.title : "No Session Today"}
+        </p>
+      </div>
+
+      {/* 🚨 NEW: Card for Subscriptions */}
+      <div 
+        onClick={() => setActiveTab("subscriptions")}
+        className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center cursor-pointer transition-all hover:-translate-y-1 hover:border-[#600694]/30 hover:shadow-md"
+      >
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Manage Plans & Pricing</h3>
+        {/* You can leave this as a static icon or text since we didn't add a specific stat counter for plans */}
+        <p className="text-2xl font-display font-bold text-[#600694]">Subscriptions</p>
+      </div>
+
+      <div 
+        onClick={() => setActiveTab("users")}
+        className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center cursor-pointer transition-all hover:-translate-y-1 hover:border-[#600694]/30 hover:shadow-md"
+      >
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Student Management</h3>
+        <p className="text-2xl font-display font-bold text-[#600694]">Users & Levels</p>
       </div>
 
     </div>

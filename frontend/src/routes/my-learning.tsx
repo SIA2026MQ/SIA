@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutDashboard, GraduationCap, BookOpen, Video, Flower2, Trophy } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Video, Flower2, Trophy } from "lucide-react";
 
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api"; 
 
-// 🚨 Import your new split components
-import { Tab, EnrolledCourse } from "@/components/my-learning/types";
+import { EnrolledCourse } from "@/components/my-learning/types";
 import { cn } from "@/components/my-learning/utils";
 import { StudentDashboardPanel } from "@/components/my-learning/StudentDashboardPanel";
 import { CourseGrid } from "@/components/my-learning/CourseGrid";
@@ -20,7 +19,11 @@ export default function MyLearningPage() {
   
   const [courses, setCourses] = useState<EnrolledCourse[]>([]);
   const [subscription, setSubscription] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+  
+  // 🚨 Updated state to use standard strings to avoid type conflicts with your existing 'Tab' interface
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [courseSubTab, setCourseSubTab] = useState<"practices" | "scriptures">("practices");
+  
   const [webinars, setWebinars] = useState<any[]>([]);
   const [loadingWebinars, setLoadingWebinars] = useState(true);
 
@@ -63,12 +66,22 @@ export default function MyLearningPage() {
 
   if (loading || !dbUser) return null; 
 
-  const tabs: Array<{ id: Tab; label: string; icon: any }> = [
+  // 🚨 1. Consolidate to only 3 Main Tabs
+  const tabs = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "practices", label: "My Practices", icon: GraduationCap },
-    { id: "scriptures", label: "My Scriptures", icon: BookOpen },
+    { id: "courses", label: "Courses", icon: GraduationCap },
     { id: "webinars", label: "Webinars", icon: Video },
   ];
+
+  // Helper to handle tab changes safely (in case StudentDashboardPanel passes old tab names)
+  const handleTabChange = (newTab: string) => {
+    if (newTab === "practices" || newTab === "scriptures") {
+      setActiveTab("courses");
+      setCourseSubTab(newTab as "practices" | "scriptures");
+    } else {
+      setActiveTab(newTab);
+    }
+  };
 
   return (
     <AnimatedPage>
@@ -125,11 +138,34 @@ export default function MyLearningPage() {
               <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                 
                 {activeTab === "dashboard" && (
-                  <StudentDashboardPanel courses={courses} webinars={webinars} subscription={subscription} onChangeTab={setActiveTab} />
+                  <StudentDashboardPanel courses={courses} webinars={webinars} subscription={subscription} onChangeTab={handleTabChange} />
                 )}
                 
-                {(activeTab === "practices" || activeTab === "scriptures") && (
-                  <CourseGrid courses={courses} category={activeTab} />
+                {/* 🚨 2. New Nested Sub-Panel for Courses */}
+                {activeTab === "courses" && (
+                  <div className="space-y-6">
+                    <div className="flex gap-6 border-b border-gray-200">
+                      <button 
+                        onClick={() => setCourseSubTab("practices")}
+                        className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors border-b-2 ${
+                          courseSubTab === "practices" ? "text-[#600694] border-[#600694]" : "text-gray-500 border-transparent hover:text-gray-800"
+                        }`}
+                      >
+                        SiA Practices
+                      </button>
+                      <button 
+                        onClick={() => setCourseSubTab("scriptures")}
+                        className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors border-b-2 ${
+                          courseSubTab === "scriptures" ? "text-[#600694] border-[#600694]" : "text-gray-500 border-transparent hover:text-gray-800"
+                        }`}
+                      >
+                        Scriptures
+                      </button>
+                    </div>
+                    
+                    {/* Passes the specific sub-category to your existing CourseGrid */}
+                    <CourseGrid courses={courses} category={courseSubTab} />
+                  </div>
                 )}
                 
                 {activeTab === "webinars" && (

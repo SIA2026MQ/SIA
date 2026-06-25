@@ -42,6 +42,28 @@ export default function SatsungsPage() {
   const [groupEmails, setGroupEmails] = useState<string[]>([""]);
   const [isSubmittingGroup, setIsSubmittingGroup] = useState(false);
 
+  // =============================================================
+  // 🚨 HASH SCROLLING LOGIC
+  // =============================================================
+  useEffect(() => {
+    if (!loadingPlans) {
+      if (location.hash) {
+        setTimeout(() => {
+          const element = document.getElementById(location.hash.substring(1));
+          if (element) {
+            const y = element.getBoundingClientRect().top + window.scrollY - 100;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          }
+        }, 100);
+      } else {
+        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      }
+    }
+  }, [location.hash, loadingPlans]);
+
+  // =============================================================
+  // DATA FETCHING
+  // =============================================================
   useEffect(() => {
     const fetchPlans = async () => {
       try {
@@ -175,7 +197,6 @@ export default function SatsungsPage() {
   };
 
   const submitGroupRequest = async () => {
-    // Clean up empty inputs
     const validEmails = groupEmails.filter(e => e.trim() !== "");
     
     if (validEmails.length === 0) {
@@ -186,12 +207,12 @@ export default function SatsungsPage() {
     setIsSubmittingGroup(true);
     try {
       await api.submitGroupRequest({ 
-        memberCount: validEmails.length + 1, // +1 includes the user themselves
+        memberCount: validEmails.length + 1,
         emails: validEmails 
       });
       alert("Application sent successfully! Our team will email you and your friends the discount code shortly.");
       setShowGroupModal(false);
-      setGroupEmails([""]); // Reset form
+      setGroupEmails([""]); 
     } catch (error) {
       alert("Failed to send application. Please try again.");
     } finally {
@@ -210,8 +231,12 @@ export default function SatsungsPage() {
     );
   }
 
+  // 🚨 NEW: Filter and calculate highest price dynamically
   const standardPlans = plans.filter(p => !p.name.toLowerCase().includes("webinar"));
   const topUpPlans = plans.filter(p => p.name.toLowerCase().includes("webinar"));
+  
+  // Calculate the highest INR price from standard plans
+  const highestStandardPrice = Math.max(...standardPlans.map(p => p.minPriceInr), 0);
 
   return (
     <AnimatedPage>
@@ -230,7 +255,8 @@ export default function SatsungsPage() {
           {/* STANDARD PLANS GRID */}
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
             {standardPlans.map((plan, index) => {
-              const isPremium = plan.webinarCredits > 1; 
+              // 🚨 NEW: Dynamic Recommended check
+              const isPremium = plan.minPriceInr === highestStandardPrice && highestStandardPrice > 0; 
               
               return (
                 <motion.div
@@ -243,8 +269,8 @@ export default function SatsungsPage() {
                   }`}
                 >
                   {isPremium && (
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#600694] text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                      Recommended
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#600694] text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1">
+                      ★ Recommended
                     </div>
                   )}
 
@@ -284,7 +310,7 @@ export default function SatsungsPage() {
             })}
           </div>
 
-          {/* 🚨 NEW: GROUP DISCOUNT CALL TO ACTION 🚨 */}
+          {/* GROUP DISCOUNT CALL TO ACTION */}
           <div className="mt-8 mb-16 text-center bg-white p-8 rounded-3xl border border-[#600694]/20 shadow-lg max-w-2xl mx-auto relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
               <Users className="h-32 w-32 text-[#600694]" />
@@ -305,7 +331,7 @@ export default function SatsungsPage() {
 
           {/* TOP-UP / WEBINAR ONLY PASSES */}
           {topUpPlans.length > 0 && (
-            <div className="max-w-5xl mx-auto pt-10 border-t border-gray-200">
+            <div id="alacarte-passes" className="max-w-5xl mx-auto pt-10 border-t border-gray-200 scroll-mt-28">
               <div className="text-center mb-8">
                 <h2 className="font-display text-3xl text-gray-900">A-La-Carte Passes</h2>
                 <p className="text-muted-foreground mt-2">Just want to attend a weekend webinar? Grab a one-time pass.</p>
@@ -344,9 +370,7 @@ export default function SatsungsPage() {
         </div>
       </div>
 
-      {/* ========================================= */}
-      {/* 1. CHECKOUT & COUPON MODAL                */}
-      {/* ========================================= */}
+      {/* CHECKOUT & COUPON MODAL */}
       <AnimatePresence>
         {selectedPlan && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -363,7 +387,6 @@ export default function SatsungsPage() {
               <h3 className="text-2xl font-display text-[#600694] mb-2">Secure Checkout</h3>
               <p className="text-gray-500 text-sm mb-6">Complete your purchase for the {selectedPlan.name}.</p>
 
-              {/* Pricing Math */}
               <div className="space-y-3 mb-6 bg-gray-50 p-5 rounded-2xl border border-gray-100">
                 <div className="flex justify-between items-center text-gray-600 font-medium">
                   <span>Standard Price</span>
@@ -386,7 +409,6 @@ export default function SatsungsPage() {
                 </div>
               </div>
 
-              {/* Coupon System */}
               <div className="mb-8">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">
                   Have a group referral code?
@@ -427,9 +449,7 @@ export default function SatsungsPage() {
         )}
       </AnimatePresence>
 
-      {/* ========================================= */}
-      {/* 2. GROUP APPLICATION MODAL                */}
-      {/* ========================================= */}
+      {/* GROUP APPLICATION MODAL */}
       <AnimatePresence>
         {showGroupModal && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">

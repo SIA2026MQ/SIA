@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { Footer } from "@/components/common/Footer";
 import { Navbar } from "@/components/common/Navbar";
 import AboutPage from "@/routes/about";
+
 import AdminPage from "@/routes/admin";
 import SatsungsPage from "./routes/satsungs";
 import CartPage from "@/routes/cart";
@@ -9,7 +10,7 @@ import BlogDetailPage from "@/routes/blog.$slug";
 import BlogPage from "@/routes/blog";
 import ContactPage from "@/routes/contact";
 import CoursesPage from "@/routes/courses";
-
+import WebinarsPage from "@/routes/webinars";
 import HomePage from "@/routes/index";
 import LoginPage from "@/routes/login";
 import SIAPage from "@/routes/sia";
@@ -19,6 +20,7 @@ import TermsConditions from "./components/legal/TermsCondiction";
 import CancellationPolicy from "./components/legal/CacellationPolicy";
 import MyLearningPage from "@/routes/my-learning";
 import RetreatsPage from "@/routes/retreats";
+import LearningPage from "@/pages/LearnPage";
 function NotFoundPage() {
   return (
     <section className="section-odd min-h-screen pt-32">
@@ -45,7 +47,7 @@ export default function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cart" element={<CartPage />} />
-          
+          <Route path="/webinars" element={<WebinarsPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-conditions" element={<TermsConditions />} />
@@ -54,6 +56,7 @@ export default function App() {
           <Route path="/satsungs" element={<SatsungsPage />} />
           <Route path="/retreats" element={<RetreatsPage />} />
           <Route path="*" element={<NotFoundPage />} />
+          <Route path="/learn/:courseId" element={<LearningPage />} />
         </Routes>
       </main>
       <Footer />

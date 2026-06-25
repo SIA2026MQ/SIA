@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react"; 
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/context/AuthContext"; 
@@ -14,12 +14,22 @@ import { BlogsTab } from "@/components/admin/BlogsTab";
 import { CouponsTab } from "@/components/admin/CouponsTab";
 import { InquiriesTab } from "@/components/admin/InquiriesTab";
 import { DailySessionTab } from "@/components/admin/DailySessionTab";
+import { SubscriptionTab } from "@/components/admin/SubscriptionTab";
+import { UserLevelTab } from "@/components/admin/UserLevelTab";
 
-type Tab = "dashboard" | "courses" | "webinars" | "retreats" | "blogs" | "coupons" | "inquiries" | "daily-session";
+type Tab = "dashboard" | "courses" | "webinars" | "retreats" | "blogs" | "coupons" | "inquiries" | "daily-session" | "subscriptions" | "users";
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
-  const [pendingCoupons, setPendingCoupons] = useState(0); // 🚨 NEW: State for the notification badge
+  // 🚨 NEW: Read the active tab directly from the URL!
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get("tab") as Tab) || "dashboard";
+
+  // 🚨 NEW: Create a custom function to update the URL when a tab is clicked
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab });
+  };
+
+  const [pendingCoupons, setPendingCoupons] = useState(0); 
   const navigate = useNavigate();
 
   // 1. Pull the real user data and loading state from your secure Context
@@ -30,7 +40,7 @@ export default function AdminPage() {
     setActiveTab("dashboard");
   };
 
-  // 🚨 NEW: Fetch pending group requests to show the notification badge
+  // Fetch pending group requests to show the notification badge
   useEffect(() => {
     if (dbUser?.role === "ADMIN") {
       api.getAdminGroupRequests()
@@ -72,12 +82,16 @@ export default function AdminPage() {
         return <DailySessionTab handlePostSave={handlePostSave} />;  
       case "retreats":
         return <RetreatsTab handlePostSave={handlePostSave} />;
+      case "subscriptions":
+        return <SubscriptionTab handlePostSave={handlePostSave} />;
       case "blogs":
         return <BlogsTab handlePostSave={handlePostSave} />;
       case "coupons":
         return <CouponsTab handlePostSave={handlePostSave} />;
       case "inquiries":
         return <InquiriesTab />;
+      case "users":
+        return <UserLevelTab />;
       default:
         return null;
     }
@@ -90,9 +104,11 @@ export default function AdminPage() {
     { key: "webinars", label: "Webinars" },
     { key: "retreats", label: "Retreats" },
     { key: "blogs", label: "Blogs" },
-    { key: "coupons", label: "Coupons", notificationCount: pendingCoupons }, // 🚨 Badge attached here
+    { key: "coupons", label: "Coupons", notificationCount: pendingCoupons }, 
     { key: "inquiries", label: "Inquiries" },
     { key: "daily-session", label: "Daily Session" },
+    { key: "subscriptions", label: "Subscriptions" },
+    { key: "users", label: "Users" },
   ];
 
   return (
@@ -134,10 +150,11 @@ export default function AdminPage() {
                     ? "border-[#600694] bg-[#600694] text-white shadow-md"
                     : "border-[#600694]/30 text-[#600694] hover:bg-[#600694]/10"
                 }`}
-                onClick={() => setActiveTab(tab.key as Tab)}
+                // 🚨 Trigger URL update here
+                onClick={() => setActiveTab(tab.key)}
               >
                 {tab.label}
-                {/* 🚨 THE RED NOTIFICATION DOT 🚨 */}
+                {/* THE RED NOTIFICATION DOT */}
                 {tab.notificationCount ? (
                   <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white shadow-sm animate-bounce">
                     {tab.notificationCount}

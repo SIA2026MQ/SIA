@@ -12,23 +12,26 @@ datasource db {
 // 1. USERS & AUTHENTICATION
 // -----------------------------------------------------------------------------
 model User {
-  id            String   @id @default(uuid())
-  firebaseUid   String   @unique // NEW: The true Google OAuth2 ID
-  email         String   @unique
-  name          String
-  passwordHash  String?  // UPDATED: Optional, because Google handles security
-  role          Role     @default(USER)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  firebaseUid         String   @unique 
+  email               String   @unique
+  name                String
+  passwordHash        String?  
+  role                Role     @default(USER)
+  
+  level               Int      @default(1)
 
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  isBlocked           Boolean  @default(false)
   courseAccess        CourseAccess[]
-  webinarAccess       WebinarAccess[]      
+  webinarAccess       WebinarAccess[]     
   subscription        UserSubscription?    
   orders              Order[]
-  
-  // FIXED: Added missing relation for Retreat Applications
   retreatApplications RetreatApplication[]
   groupRequests       GroupDiscountRequest[]
+  videoProgress       VideoProgress[]
+  attendances         DailySessionAttendance[]
 }
 
 enum Role {
@@ -52,12 +55,16 @@ model Course {
   category      CourseCategory 
   priceInr      Float  
   priceUsd      Float  
+  thumbnailUrl  String?        
+  duration      String?        
+  rating        Float?         @default(5.0)
   isPublished   Boolean        @default(false)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
   videos        CourseVideo[]
   accessLedger  CourseAccess[]
+  progress      VideoProgress[] 
 }
 
 model CourseVideo {
@@ -69,6 +76,7 @@ model CourseVideo {
   orderIndex    Int      
   
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress      VideoProgress[] 
 }
 
 model CourseAccess {
@@ -92,11 +100,13 @@ model Webinar {
   title         String
   description   String?  @db.Text
   zoomLink      String   
-  minPriceInr   Float    // UPDATED: Allows "Pay What You Want" above minimum
+  minPriceInr   Float    
   minPriceUsd   Float
   scheduledFor  DateTime
-  imageUrl    String?
+  imageUrl      String?
+  
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt 
 
   accessLedger  WebinarAccess[]
 }
@@ -105,7 +115,7 @@ model WebinarAccess {
   id            String   @id @default(uuid())
   userId        String
   webinarId     String
-  orderId       String?  @unique // UPDATED: Optional because they might use a subscription credit instead of buying directly
+  orderId       String?  @unique 
   purchasedAt   DateTime @default(now())
 
   user          User     @relation(fields: [userId], references: [id])
@@ -118,21 +128,31 @@ model WebinarAccess {
 // 4. DAILY SESSIONS & SUBSCRIPTIONS (Credit-Based)
 // -----------------------------------------------------------------------------
 model DailySession {
-  id            String   @id @default(uuid())
-  title         String   @default("Daily Live Session")
-  zoomLink      String   
-  date          DateTime 
-  createdAt     DateTime @default(now())
+  id          String   @id @default(uuid())
+  title       String   @default("Daily Live Session")
+  zoomLink    String   
+  date        DateTime 
+  time        String?  
+  
+  // 🚨 NEW: This determines if the session appears on the Navbar!
+  isActive    Boolean  @default(false) 
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt 
+  attendances DailySessionAttendance[]
 }
 
 model SubscriptionPlan {
   id              String   @id @default(uuid())
-  name            String   // e.g., "Monthly Pro", "Quarterly Elite"
-  durationDays    Int      // e.g., 30, 90
-  webinarCredits  Int      // NEW: How many free Sunday webinars this plan gets (e.g., 1 or 2)
-  minPriceInr     Float    // UPDATED: Allows custom amounts
+  name            String   
+  durationDays    Int      
+  webinarCredits  Int      
+  minPriceInr     Float    
   minPriceUsd     Float
   
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt 
+
   subscriptions   UserSubscription[]
 }
 
@@ -141,10 +161,13 @@ model UserSubscription {
   userId            String   @unique 
   planId            String
   orderId           String   @unique 
-  remainingCredits  Int      @default(0) // NEW: Deducted when they claim a Sunday webinar
+  remainingCredits  Int      @default(0) 
   startDate         DateTime @default(now())
   expiryDate        DateTime 
   isActive          Boolean  @default(true)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt 
 
   user              User             @relation(fields: [userId], references: [id])
   plan              SubscriptionPlan @relation(fields: [planId], references: [id])
@@ -154,22 +177,22 @@ model UserSubscription {
 // 5. BLOGS
 // -----------------------------------------------------------------------------
 model Blog {
-  id           String   @id @default(uuid())
-  slug         String   @unique
-  title        String
-  category     String   @default("Spirituality") 
-  excerpt      String?  @db.Text
-  body         Json     // Stores the bodyBlock array exactly as frontend sends it
-  image        String?  // Renamed from imageUrl to match frontend
-  youtubeUrl   String?
-  author       String
-  authorAvatar String?
-  date         String?
-  readTime     String
-  isPublished  Boolean  @default(true)
-  featured     Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  title         String
+  category      String   @default("Spirituality") 
+  excerpt       String?  @db.Text
+  body          Json     
+  image         String?  
+  youtubeUrl    String?
+  author        String
+  authorAvatar  String?
+  date          String?
+  readTime      String
+  isPublished   Boolean  @default(true)
+  featured      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // -----------------------------------------------------------------------------
@@ -218,17 +241,18 @@ enum ApplicationStatus {
 }
 
 model Retreat {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  location    String
-  startDate   DateTime
-  endDate     DateTime
-  priceInr    Float
-  imageUrl    String?  // 🚨 ADD THIS LINE!
-  createdAt   DateTime @default(now())
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  location      String
+  startDate     DateTime
+  endDate       DateTime
+  priceInr      Float
+  imageUrl      String?  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt 
 
-  applications RetreatApplication[]
+  applications  RetreatApplication[]
 }
 
 model RetreatApplication {
@@ -243,14 +267,15 @@ model RetreatApplication {
   
   // Tracking
   status    ApplicationStatus @default(PENDING)
-  orderId   String?  @unique // Will link to Razorpay Order once approved & paid
+  orderId   String?  @unique 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt 
 
   // Relations
   user      User     @relation(fields: [userId], references: [id])
   retreat   Retreat  @relation(fields: [retreatId], references: [id])
 
-  @@unique([userId, retreatId]) // A user can only apply once per retreat
+  @@unique([userId, retreatId]) 
 }
 
 // -----------------------------------------------------------------------------
@@ -259,11 +284,12 @@ model RetreatApplication {
 
 model GroupDiscountRequest {
   id          String   @id @default(uuid())
-  userId      String   // The person organizing the group
+  userId      String   
   memberCount Int
-  emails      String[] // Array of their friends' emails
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  emails      String[] 
+  status      String   @default("PENDING") 
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt 
 
   user        User     @relation(fields: [userId], references: [id])
 }
@@ -277,9 +303,44 @@ model Coupon {
   isActive        Boolean   @default(true)
   expiryDate      DateTime? 
   
-  // ANTI-FRAUD FIELD: Only these specific emails can use this coupon
   allowedEmails   String[]  
 
   orders          Order[]
   createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt 
+}
+
+// -----------------------------------------------------------------------------
+// 9. ATTENDANCE TRACKING
+// -----------------------------------------------------------------------------
+model DailySessionAttendance {
+  id        String   @id @default(uuid())
+  userId    String
+  sessionId String
+  joinedAt  DateTime @default(now())
+
+  user      User         @relation(fields: [userId], references: [id])
+  session   DailySession @relation(fields: [sessionId], references: [id])
+
+  @@unique([userId, sessionId]) 
+}
+
+// -----------------------------------------------------------------------------
+// 10. LEARNING PROGRESS TRACKING (Enterprise CRM Feature)
+// -----------------------------------------------------------------------------
+model VideoProgress {
+  id        String   @id @default(uuid())
+  userId    String
+  courseId  String
+  videoId   String
+  createdAt DateTime @default(now())
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  video     CourseVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, videoId]) 
+  
+  @@index([userId])
+  @@index([courseId])
 }

@@ -3,7 +3,8 @@ import {
   getWebinars, 
   createWebinar, 
   updateWebinar, 
-  deleteWebinar 
+  deleteWebinar ,
+  redeemWebinarCredit,
 } from './webinar.controller';
 import { authenticateJWT, requireAdmin } from '../../core/middlewares/auth.middleware';
 
@@ -16,5 +17,6 @@ router.get('/', getWebinars);
 router.post('/', authenticateJWT, requireAdmin, createWebinar);
 router.put('/:id', authenticateJWT, requireAdmin, updateWebinar);
 router.delete('/:id', authenticateJWT, requireAdmin, deleteWebinar);
+router.post('/redeem', authenticateJWT, redeemWebinarCredit);
 
 export default router;

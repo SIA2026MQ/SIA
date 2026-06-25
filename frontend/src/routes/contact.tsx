@@ -11,6 +11,9 @@ type ContactFormValues = {
   message: string;
 };
 
+// 🚨 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE:
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1AfysOww0sygq0BvL47woyIzkXu5XC5zv68D_vyN_AI26_BGuuCroHuP_FDPVMIv0/exec";
+
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -21,12 +24,27 @@ export default function ContactPage() {
     reset,
   } = useForm<ContactFormValues>();
 
-  const onSubmit = handleSubmit(async () => {
+  const onSubmit = handleSubmit(async (data) => {
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    setLoading(false);
-    setSubmitted(true);
-    reset();
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        // Using text/plain prevents the browser from sending a CORS preflight OPTIONS request
+        // which Google Apps Script typically rejects. The Script will parse the text back into JSON.
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8",
+        },
+        body: JSON.stringify(data),
+      });
+      
+      setSubmitted(true);
+      reset();
+    } catch (error) {
+      console.error("Form submission error:", error);
+      alert("Failed to send message. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   });
 
   return (
@@ -109,8 +127,8 @@ export default function ContactPage() {
               )}
             </div>
 
-            <button type="submit" className="sia-button-primary w-full" aria-label="Send message">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Message →"}
+            <button type="submit" className="sia-button-primary w-full" aria-label="Send message" disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Send Message →"}
             </button>
 
             {submitted && (

@@ -6,6 +6,7 @@ import { CoursesPreview } from "@/components/home/CoursesPreview";
 import { GalleryStrip } from "@/components/home/GalleryStrip";
 import { HeroSection } from "@/components/home/HeroSection";
 import { WebinarCards } from "@/components/home/WebinarCards";
+import {HomeSubscription} from "@/components/home/HomeSubscription";
 
 export default function HomePage() {
   return (
@@ -15,8 +16,8 @@ export default function HomePage() {
       <LotusDivider />
       <GalleryStrip />
       <BlogTicker />
-      <WebinarCards />
       <CoursesPreview />
+      <HomeSubscription />
     </AnimatedPage>
   );
 }

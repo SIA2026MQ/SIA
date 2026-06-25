@@ -12,7 +12,13 @@ export function StudentDashboardPanel({ courses, webinars, subscription, onChang
   const [myApplications, setMyApplications] = useState<any[]>([]);
 
   useEffect(() => {
-    api.getMyRetreatApplications().then(res => setMyApplications(res.applications || []));
+    api.getMyRetreatApplications().then(res => {
+      // 🚨 FIXED: Filter out orphaned applications! 
+      // If the admin deleted the retreat, 'app.retreat' will be null or undefined.
+      // This ensures we ONLY show applications that still have an active retreat attached.
+      const validApplications = (res.applications || []).filter((app: any) => app && app.retreat);
+      setMyApplications(validApplications);
+    }).catch(err => console.error("Failed to fetch applications", err));
   }, []);
 
   const practicesCount = courses.filter(c => c.category === "practices").length;
@@ -38,7 +44,7 @@ export function StudentDashboardPanel({ courses, webinars, subscription, onChang
             amount: orderRes.amount,
             currency: orderRes.currency,
             name: "Shifting Into Awareness",
-            description: `${app.retreat.title} Retreat Payment`,
+            description: `${app.retreat?.title || 'Retreat'} Payment`,
             order_id: orderRes.razorpayOrderId,
             prefill: { name: dbUser?.name, email: dbUser?.email },
             theme: { color: "#600694" },
@@ -73,7 +79,8 @@ export function StudentDashboardPanel({ courses, webinars, subscription, onChang
           {myApplications.map((app) => (
             <div key={app.id} className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-6">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {app.retreat.imageUrl ? (
+                {/* 🚨 ADDED OPTIONAL CHAINING (?.) TO PREVENT CRASHES */}
+                {app.retreat?.imageUrl ? (
                   <img src={app.retreat.imageUrl} alt={app.retreat.title} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded-xl shrink-0 border border-gray-100 shadow-sm" />
                 ) : (
                   <div className="w-full sm:w-24 h-40 sm:h-24 bg-gray-100 rounded-xl shrink-0 flex items-center justify-center border border-gray-200">
@@ -81,7 +88,7 @@ export function StudentDashboardPanel({ courses, webinars, subscription, onChang
                   </div>
                 )}
                 <div>
-                  <h4 className="font-bold text-gray-900 text-lg">{app.retreat.title}</h4>
+                  <h4 className="font-bold text-gray-900 text-lg">{app.retreat?.title || 'Deleted Retreat'}</h4>
                   <p className="text-sm text-gray-500 mt-1">Status: <span className="font-semibold text-gray-700">{app.status}</span></p>
                 </div>
               </div>
@@ -92,7 +99,7 @@ export function StudentDashboardPanel({ courses, webinars, subscription, onChang
                 {app.status === 'PAID' && <div className="px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-bold border border-green-200">Spot Confirmed!</div>}
                 {app.status === 'APPROVED' && (
                   <button onClick={() => handleRetreatPayment(app)} className="bg-green-600 text-white px-6 py-3 rounded-full font-bold hover:bg-green-700 shadow-md animate-pulse transition-colors">
-                    Pay Fees Now (₹{app.retreat.priceInr})
+                    Pay Fees Now (₹{app.retreat?.priceInr || 0})
                   </button>
                 )}
               </div>
