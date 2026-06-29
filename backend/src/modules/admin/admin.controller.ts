@@ -1,20 +1,21 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../core/services/db.service';
+// 🚨 NEW: Make sure this path matches where your bullmq queues are exported!
+import { emailQueue } from '../../core/services/queue.service'; 
 
 // -----------------------------------------------------------------------------
 // Dashboard Stats (Updated to include Users & Subscriptions)
 // -----------------------------------------------------------------------------
 export const getAdminStats = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Run all counts at the exact same time for maximum speed
     const [
       coursesCount,
       webinarsCount,
       blogsCount,
       couponsCount,
       inquiriesCount,
-      usersCount,             // 🚨 NEW: Added User Count
-      subscriptionsCount      // 🚨 NEW: Added Subscription Count
+      usersCount,            
+      subscriptionsCount      
     ] = await Promise.all([
       prisma.course.count(),
       prisma.webinar.count(),
@@ -46,14 +47,13 @@ export const getAdminStats = async (req: Request, res: Response): Promise<void> 
 export const getAdminUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const search = (req.query.search as string) || ""; // 🚨 Capture search query
+    const search = (req.query.search as string) || ""; 
     const limit = 10;
     const skip = (page - 1) * limit;
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    // 🚨 Create the search filter
     const whereClause = search ? {
       OR: [
         { name: { contains: search, mode: 'insensitive' as const } },
@@ -71,8 +71,6 @@ export const getAdminUsers = async (req: Request, res: Response): Promise<void> 
           courseAccess: { include: { course: true } },
           subscription: { include: { plan: true } },
           retreatApplications: { where: { status: 'PAID' }, include: { retreat: true } },
-          
-          // 🚨 FIXED: Now fetches ALL attendances, not just today's
           attendances: true 
         }
       }),
@@ -97,8 +95,14 @@ export const getAdminUsers = async (req: Request, res: Response): Promise<void> 
 // -----------------------------------------------------------------------------
 export const updateUserLevel = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    // 🚨 FIX: Safely grab the ID whether the router calls it :userId or :id
+    const targetId = req.params.userId || req.params.id;
     const { level } = req.body;
+
+    if (!targetId) {
+      res.status(400).json({ error: "User ID parameter is missing from the route." });
+      return;
+    }
 
     if (typeof level !== 'number' || level < 0) {
       res.status(400).json({ error: "Level must be a positive number." });
@@ -106,7 +110,7 @@ export const updateUserLevel = async (req: Request, res: Response): Promise<void
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id },
+      where: { id: targetId },
       data: { level },
     });
 
@@ -117,25 +121,48 @@ export const updateUserLevel = async (req: Request, res: Response): Promise<void
   }
 };
 
+// -----------------------------------------------------------------------------
+// Toggle User Block Status
+// -----------------------------------------------------------------------------
 export const toggleUserBlock = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    // Safely grab the ID whether the router calls it :userId or :id
+    const targetId = req.params.userId || req.params.id;
     const { isBlocked } = req.body;
 
-    console.log(`[BLOCK TOGGLE] User ID: ${id} | Target Status:`, isBlocked);
+    if (!targetId) {
+      res.status(400).json({ error: "User ID parameter is missing from the route." });
+      return;
+    }
 
-    // Explicitly enforce boolean typing
+    console.log(`[BLOCK TOGGLE] User ID: ${targetId} | Target Status:`, isBlocked);
+
     const blockStatus = isBlocked === true || isBlocked === "true";
 
+    // 1. Update the database first
     const updatedUser = await prisma.user.update({
-      where: { id },
+      where: { id: targetId },
       data: { isBlocked: blockStatus },
     });
 
+    // 2. Trigger the email worker safely
+    if (blockStatus === true) {
+      try {
+        await emailQueue.add('account-blocked', {
+          email: updatedUser.email,
+          name: updatedUser.name
+        });
+      } catch (queueError: any) {
+        // 🚨 If Redis/BullMQ fails, we log it but DON'T crash the request!
+        console.warn(`⚠️ User was blocked, but email queue failed: ${queueError.message}`);
+      }
+    }
+
+    // 3. Return success to the frontend
     res.status(200).json({ message: "User block status updated", isBlocked: updatedUser.isBlocked });
-  } catch (error) {
-    // 🚨 THIS WILL PRINT THE EXACT REASON IT IS FAILING TO YOUR TERMINAL
+    
+  } catch (error: any) {
     console.error("🔥 DATABASE ERROR IN TOGGLE BLOCK:", error);
-    res.status(500).json({ error: "Failed to update block status." });
+    res.status(500).json({ error: "Failed to update block status.", details: error.message });
   }
 };

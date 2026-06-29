@@ -2,15 +2,15 @@ import { Route, Routes } from "react-router-dom";
 import { Footer } from "@/components/common/Footer";
 import { Navbar } from "@/components/common/Navbar";
 import AboutPage from "@/routes/about";
-
+import Events from "@/routes/events";
 import AdminPage from "@/routes/admin";
-import SatsungsPage from "./routes/satsungs";
+import Subscripton from "./routes/subscription";
 import CartPage from "@/routes/cart";
 import BlogDetailPage from "@/routes/blog.$slug";
 import BlogPage from "@/routes/blog";
 import ContactPage from "@/routes/contact";
 import CoursesPage from "@/routes/courses";
-import WebinarsPage from "@/routes/webinars";
+import WebinarsPage from "./routes/webinars";
 import HomePage from "@/routes/index";
 import LoginPage from "@/routes/login";
 import SIAPage from "@/routes/sia";
@@ -20,6 +20,7 @@ import TermsConditions from "./components/legal/TermsCondiction";
 import CancellationPolicy from "./components/legal/CacellationPolicy";
 import MyLearningPage from "@/routes/my-learning";
 import RetreatsPage from "@/routes/retreats";
+import SatsungsQnAPage from "@/routes/ScheduleTab";
 import LearningPage from "@/pages/LearnPage";
 function NotFoundPage() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/sia" element={<SIAPage />} />
           <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/satsungs-qna" element={<SatsungsQnAPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogDetailPage />} />
@@ -53,8 +55,9 @@ export default function App() {
           <Route path="/terms-conditions" element={<TermsConditions />} />
           <Route path="/cancellation-policy" element={<CancellationPolicy />} />
           <Route path="/my-learning" element={<MyLearningPage />} />
-          <Route path="/satsungs" element={<SatsungsPage />} />
+          <Route path="/subscription" element={<Subscripton />} />
           <Route path="/retreats" element={<RetreatsPage />} />
+            <Route path="/events" element={<Events />} />
           <Route path="*" element={<NotFoundPage />} />
           <Route path="/learn/:courseId" element={<LearningPage />} />
         </Routes>

@@ -1,18 +1,32 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom"; 
 import { Loader2 } from "lucide-react"; 
 import heroMandala from "@/assets/hero-mandala.jpg";
 import lotusDawn from "@/assets/lotus-dawn.jpg";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { api } from "@/lib/api"; 
 
-const tags = ["All", "Spirituality", "Meditation", "Healing", "Wellness", "Retreats"];
+const defaultTags = ["All", "Spirituality", "Meditation", "Healing", "Wellness", "Retreats"];
 
 export default function BlogPage() {
+  // 1. Grab the URL parameter
+  const [searchParams] = useSearchParams();
+  const categoryFromUrl = searchParams.get("category");
+
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [tag, setTag] = useState("All");
+  
+  // 2. Set default active tag to the URL category, fallback to "All"
+  const [tag, setTag] = useState(categoryFromUrl || "All");
+
+  // 3. If the URL changes while they are on the page, update the active tag instantly
+  useEffect(() => {
+    if (categoryFromUrl) {
+      setTag(categoryFromUrl);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [categoryFromUrl]);
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -44,6 +58,9 @@ export default function BlogPage() {
     return blogPosts.find(post => post.featured) || blogPosts[0];
   }, [blogPosts]);
 
+  // Merge default tags with the currently active tag
+  const displayTags = Array.from(new Set([...defaultTags, tag]));
+
   if (loading) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gray-50 pt-20">
@@ -65,7 +82,7 @@ export default function BlogPage() {
             className="h-12 w-full max-w-md rounded-full border border-input bg-card px-5 focus:outline-none focus:border-[#600694]"
           />
           <div className="flex flex-wrap gap-2">
-            {tags.map((value) => (
+            {displayTags.map((value) => (
               <button
                 key={value}
                 onClick={() => setTag(value)}

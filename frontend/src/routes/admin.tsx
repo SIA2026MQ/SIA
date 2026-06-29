@@ -16,8 +16,9 @@ import { InquiriesTab } from "@/components/admin/InquiriesTab";
 import { DailySessionTab } from "@/components/admin/DailySessionTab";
 import { SubscriptionTab } from "@/components/admin/SubscriptionTab";
 import { UserLevelTab } from "@/components/admin/UserLevelTab";
+import { ScheduleTab } from "@/components/admin/ScheduleTab";
 
-type Tab = "dashboard" | "courses" | "webinars" | "retreats" | "blogs" | "coupons" | "inquiries" | "daily-session" | "subscriptions" | "users";
+type Tab = "dashboard" | "courses" | "webinars" | "retreats" | "blogs" | "coupons" | "inquiries" | "daily-session" | "subscriptions" | "users" | "schedules"; // Add "schedules" to the type
 
 export default function AdminPage() {
   // 🚨 NEW: Read the active tab directly from the URL!
@@ -76,6 +77,8 @@ export default function AdminPage() {
         return <DashboardTab setActiveTab={setActiveTab as (tab: string) => void} />;
       case "courses":
         return <CoursesTab handlePostSave={handlePostSave} />;
+      case "schedules":
+        return <ScheduleTab />;
       case "webinars":
         return <AdminWebinarTab />; 
       case "daily-session":
@@ -109,6 +112,7 @@ export default function AdminPage() {
     { key: "daily-session", label: "Daily Session" },
     { key: "subscriptions", label: "Subscriptions" },
     { key: "users", label: "Users" },
+    { key: "schedules", label: "Schedules" },
   ];
 
   return (

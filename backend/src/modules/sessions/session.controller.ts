@@ -22,35 +22,46 @@ export const getAllPlans = async (req: Request, res: Response): Promise<void> =>
 // -----------------------------------------------------------------------------
 export const createDailySession = async (req: Request, res: Response): Promise<void> => {
   try {
-    // 🚨 Extract 'time' from req.body
-    const { title, zoomLink, date, time } = req.body;
+    const { title, zoomLink, time, sessionType, isActive } = req.body;
     
+    // If Admin enabled this link, turn OFF all other links automatically
+    if (isActive) {
+      await prisma.dailySession.updateMany({ data: { isActive: false } });
+    }
+
     const session = await prisma.dailySession.create({
       data: {
-        title: title || 'Daily Live Session',
+        title: title || 'Live Session',
         zoomLink,
-        time, // 🚨 Save new time field
-        date: date ? new Date(date) : new Date(), 
+        time, 
+        sessionType: sessionType || 'Satsung',
+        isActive: isActive || false
       },
     });
-    res.status(201).json({ message: 'Daily session scheduled', session });
+    res.status(201).json({ message: 'Master link created', session });
   } catch (error) {
     console.error('Create Session Error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
-
 // -----------------------------------------------------------------------------
 // [ADMIN] Update Daily Session
 // -----------------------------------------------------------------------------
 export const updateDailySession = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { title, zoomLink, time } = req.body;
+    const { title, zoomLink, time, sessionType, isActive } = req.body;
+
+    if (isActive) {
+      await prisma.dailySession.updateMany({
+        where: { id: { not: id } },
+        data: { isActive: false }
+      });
+    }
 
     const session = await prisma.dailySession.update({
       where: { id },
-      data: { title, zoomLink, time },
+      data: { title, zoomLink, time, sessionType, isActive },
     });
 
     res.status(200).json({ message: 'Session updated successfully', session });
@@ -59,18 +70,17 @@ export const updateDailySession = async (req: Request, res: Response): Promise<v
     res.status(500).json({ error: 'Failed to update session' });
   }
 };
-
+// -----------------------------------------------------------------------------
+// [ADMIN] Delete Daily Session
+// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 // [ADMIN] Delete Daily Session
 // -----------------------------------------------------------------------------
 export const deleteDailySession = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-
-    await prisma.dailySession.delete({
-      where: { id },
-    });
-
+    // Cascade delete handles attendances automatically now!
+    await prisma.dailySession.delete({ where: { id } });
     res.status(200).json({ message: 'Session deleted successfully' });
   } catch (error) {
     console.error('Delete Session Error:', error);
@@ -84,8 +94,8 @@ export const deleteDailySession = async (req: Request, res: Response): Promise<v
 export const getSessionHistory = async (req: Request, res: Response): Promise<void> => {
   try {
     const sessions = await prisma.dailySession.findMany({
-      orderBy: { date: 'desc' }, 
-      take: 30, // Limit to 30 to prevent massive loads
+      orderBy: { createdAt: 'desc' }, // Sorted by creation instead of the removed 'date'
+      take: 30, 
     });
     res.status(200).json({ sessions });
   } catch (error) {
@@ -99,17 +109,9 @@ export const getSessionHistory = async (req: Request, res: Response): Promise<vo
 // -----------------------------------------------------------------------------
 export const getTodaySession = async (req: Request, res: Response): Promise<void> => {
   try {
-    // 1. Calculate exactly 24 hours ago from right now
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    // 2. Query the most recent session that is LESS THAN 24 hours old
+    // ONLY fetch the link where the Admin selected "Enable"
     const session = await prisma.dailySession.findFirst({
-      where: { 
-        date: { 
-          gte: twentyFourHoursAgo 
-        } 
-      },
-      orderBy: { date: 'desc' } 
+      where: { isActive: true }
     });
 
     if (!session) {
@@ -117,41 +119,28 @@ export const getTodaySession = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    // 3. THE FIREBASE SECURITY LOCK
     let hasActiveSubscription = false;
     const authHeader = req.headers.authorization;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-
       try {
         const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-        
-        // 🚨 FIXED: Check by UID for 100% reliability
         if (decodedToken.uid) {
           const user = await prisma.user.findUnique({ where: { firebaseUid: decodedToken.uid } });
-          
           if (user) {
-            if (user.role === 'ADMIN') {
-              hasActiveSubscription = true;
-            } else {
+            if (user.role === 'ADMIN') hasActiveSubscription = true;
+            else {
               const activeSub = await prisma.userSubscription.findFirst({
-                where: {
-                  userId: user.id,
-                  isActive: true,
-                  expiryDate: { gte: new Date() },
-                },
+                where: { userId: user.id, isActive: true, expiryDate: { gte: new Date() } },
               });
               if (activeSub) hasActiveSubscription = true;
             }
           }
         }
-      } catch (err) {
-        // Ignore invalid/expired tokens
-      }
+      } catch (err) {}
     }
 
-    // 4. Strip the Zoom link if they don't have a plan
     if (!hasActiveSubscription) {
       session.zoomLink = 'LOCKED - Active Subscription Required';
     }
@@ -277,16 +266,14 @@ export const logSessionAttendance = async (req: Request, res: Response): Promise
 // -----------------------------------------------------------------------------
 // 🚨 [ADMIN] TOGGLE SESSION ENABLE/DISABLE (NEW)
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 export const toggleSessionStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { isActive } = req.body;
 
-    // If enabling, disable all other sessions first so only ONE link is ever live
     if (isActive) {
-      await prisma.dailySession.updateMany({
-        data: { isActive: false }
-      });
+      await prisma.dailySession.updateMany({ data: { isActive: false } });
     }
 
     const session = await prisma.dailySession.update({
@@ -298,5 +285,60 @@ export const toggleSessionStatus = async (req: Request, res: Response): Promise<
   } catch (error) {
     console.error('Toggle Session Error:', error);
     res.status(500).json({ error: 'Failed to toggle session' });
+  }
+};
+
+// -----------------------------------------------------------------------------
+// [PUBLIC/STUDENT] Get Upcoming Schedules
+// -----------------------------------------------------------------------------
+export const getSchedules = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Only fetch schedules from today onwards (hides past events)
+    const schedules = await prisma.satsangSchedule.findMany({
+      where: { date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
+      orderBy: { date: 'asc' }
+    });
+    res.status(200).json({ schedules });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// -----------------------------------------------------------------------------
+// [ADMIN] Schedule CRUD
+// -----------------------------------------------------------------------------
+export const createSchedule = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { title, date, time, category } = req.body;
+    const schedule = await prisma.satsangSchedule.create({
+      data: { title, date: new Date(date), time, category }
+    });
+    res.status(201).json({ schedule });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateSchedule = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { title, date, time, category } = req.body;
+    const schedule = await prisma.satsangSchedule.update({
+      where: { id },
+      data: { title, date: new Date(date), time, category }
+    });
+    res.status(200).json({ schedule });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const deleteSchedule = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await prisma.satsangSchedule.delete({ where: { id } });
+    res.status(200).json({ message: 'Schedule deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
   }
 };

@@ -88,3 +88,4 @@ export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction
     res.status(403).json({ error: 'Forbidden: Admin access required' });
   }
 };
+

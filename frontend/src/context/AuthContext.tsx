@@ -9,6 +9,7 @@ export type DbUser = {
   name: string;
   email: string;
   role: "USER" | "ADMIN";
+  isBlocked?: boolean; // 🚨 NEW: Added to type
 };
 
 type AuthContextType = {
@@ -30,13 +31,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (firebaseUser) {
         try {
-          // This single call hits GET /api/auth/me
-          // Your Node.js middleware handles the creation/verification automatically!
           const response = await api.getMe();
+          
+          // 🚨 NEW: If the database says they are blocked, kick them out of Firebase instantly
+          if (response.user.isBlocked) {
+            throw new Error("ACCOUNT_BLOCKED");
+          }
+          
           setDbUser(response.user);
-        } catch (err) {
+        } catch (err: any) {
           console.error("Database sync failed, logging out:", err);
-          // If the DB call fails, we sign them out of Firebase to prevent ghost sessions
           await signOut(auth);
           setDbUser(null);
         }

@@ -19,13 +19,20 @@ export function WebinarGrid({ webinars, setWebinars, loading, subscription, setS
   const navigate = useNavigate();
 
   const handleJoinClick = async (webinar: any) => {
+    // 💡 NEW: Helper function to ensure the URL is absolute
+    const getAbsoluteUrl = (url: string) => {
+      if (!url) return "";
+      return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    };
+
     // 1. If they already have access, just open the link
     if (webinar.hasAccess && webinar.meetLink && !webinar.meetLink.includes('LOCKED')) {
-      window.open(webinar.meetLink, "_blank", "noopener,noreferrer");
+      // 🚨 UPDATED: Wrap the link in our helper
+      window.open(getAbsoluteUrl(webinar.meetLink), "_blank", "noopener,noreferrer");
       return;
     }
 
-    // 2. 🚨 UPDATED: If they have 0 credits, alert them and teleport them to the upgrade page
+    // 2. If they have 0 credits, alert them and teleport them to the upgrade page
     if (!subscription || subscription.remainingCredits < 1) {
       alert("You don't have enough webinar credits. Please upgrade your membership.");
       navigate("/satsungs"); 
@@ -53,7 +60,8 @@ export function WebinarGrid({ webinars, setWebinars, loading, subscription, setS
         remainingCredits: prev.remainingCredits - 1
       }));
 
-      window.open(res.meetLink, "_blank", "noopener,noreferrer");
+      // 🚨 UPDATED: Wrap the link in our helper
+      window.open(getAbsoluteUrl(res.meetLink), "_blank", "noopener,noreferrer");
     } catch (error: any) {
       alert(error.message || "Failed to redeem credit.");
     } finally {

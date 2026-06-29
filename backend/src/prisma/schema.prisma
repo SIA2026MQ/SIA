@@ -129,17 +129,31 @@ model WebinarAccess {
 // -----------------------------------------------------------------------------
 model DailySession {
   id          String   @id @default(uuid())
-  title       String   @default("Daily Live Session")
+  title       String   @default("Live Session")
   zoomLink    String   
-  date        DateTime 
   time        String?  
   
-  // 🚨 NEW: This determines if the session appears on the Navbar!
+  // 🚨 NEW: Distinguish between Satsung and QnA
+  sessionType String   @default("Satsung") 
+  
+  // 🚨 NEW: Status Dropdown (Enable/Disable)
   isActive    Boolean  @default(false) 
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt 
   attendances DailySessionAttendance[]
+}
+
+// 🚨 NEW: Schedule table for upcoming Satsungs and QnAs
+model SatsangSchedule {
+  id        String   @id @default(uuid())
+  title     String
+  category  String   @default("Satsung") // "Satsung" or "QnA"
+  date      DateTime
+  time      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SubscriptionPlan {
@@ -319,8 +333,9 @@ model DailySessionAttendance {
   sessionId String
   joinedAt  DateTime @default(now())
 
-  user      User         @relation(fields: [userId], references: [id])
-  session   DailySession @relation(fields: [sessionId], references: [id])
+  // 🚨 ADDED onDelete: Cascade to PREVENT 500 ERRORS WHEN DELETING A SESSION!
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session   DailySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([userId, sessionId]) 
 }

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticateJWT, AuthRequest } from '../../core/middlewares/auth.middleware';
+import { getUserSubscription } from './auth.controller';
 // We are removing the import from auth.controller to handle the response safely right here.
 
 const router = Router();
@@ -16,5 +17,7 @@ router.get('/me', authenticateJWT, (req: AuthRequest, res: Response) => {
     res.status(404).json({ error: "User not found in database" });
   }
 });
+
+router.get('/subscription', authenticateJWT, getUserSubscription);
 
 export default router;

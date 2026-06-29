@@ -36,4 +36,8 @@ export const videoQueue = new Queue('video-queue', {
   }
 });
 
+export const emailQueue = new Queue('email-queue', {
+  connection: redisConnection
+});
+
 console.log('📦 Local Redis Video Queue initialized successfully.');

@@ -136,20 +136,20 @@ export function HomeSubscription() {
 
   return (
     <section className="py-24 bg-[#f7e7e7] border-y border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* =========================================
             HEADER (Perfectly Aligned)
         ========================================= */}
-        <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-12 gap-4">
-           <h2 className="sia-h2 text-3xl md:text-5xl">Start Your Journey</h2>
+        <div className="flex flex-col items-center text-center max-w-2xl mx-auto mb-12 gap-3">
+           <h2 className="sia-h2 text-3xl md:text-4xl">Start Your Journey</h2>
           <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[#fdb022]">
             Join our daily live Satsangs or get an exclusive pass to our weekend webinars. Choose the plan that fits your path.
           </p>
         </div>
 
         {/* Dynamic Grid Layout */}
-        <div className={`grid gap-8 items-stretch ${displayPlans.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-4xl mx-auto'}`}>
+        <div className={`grid gap-6 items-stretch ${displayPlans.length === 3 ? 'md:grid-cols-3 max-w-5xl' : 'md:grid-cols-2 max-w-3xl'} mx-auto`}>
           {displayPlans.map((plan, index) => {
             // Determine card type based on name
             const isPass = plan.name.toLowerCase().includes("webinar");
@@ -158,71 +158,67 @@ export function HomeSubscription() {
             return (
               <motion.div
                 key={plan.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className={`relative rounded-3xl p-8 bg-white border flex flex-col ${
-                  isPremium ? 'border-[#600694] shadow-xl shadow-[#600694]/10 scale-105 z-10' : 'border-gray-200 shadow-md'
+                className={`relative rounded-2xl p-6 bg-white border flex flex-col ${
+                  isPremium ? 'border-[#600694] shadow-lg shadow-[#600694]/5 scale-105 z-10' : 'border-gray-200 shadow-sm'
                 }`}
               >
                 {/* Badges */}
                 {isPremium && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#600694] text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#600694] text-white px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
                     Most Popular
                   </div>
                 )}
                 {isPass && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
                     One-Time Pass
                   </div>
                 )}
 
-                <div className="mb-6 text-center mt-2">
-                  <h3 className="font-display text-2xl text-gray-900 mb-2">{plan.name}</h3>
-                  <div className="flex items-end justify-center gap-1">
-                    <span className="text-4xl font-bold text-[#600694]">₹{plan.minPriceInr}</span>
-                    {!isPass && <span className="text-gray-500 mb-1">/ month</span>}
-                  </div>
+                <div className="mb-4 text-center mt-2">
+                  <h3 className="font-display text-xl text-gray-900">{plan.name}</h3>
                 </div>
 
-                <div className="space-y-4 mb-8 flex-1">
+                <div className="space-y-3 mb-6 flex-1 text-sm">
                   {/* FEATURES FOR WEBINAR PASS */}
                   {isPass ? (
                     <>
-                      <div className="flex items-start gap-3">
-                        <Ticket className="h-5 w-5 text-gray-900 shrink-0 mt-0.5" />
-                        <span className="text-gray-600">Grants <strong>{plan.webinarCredits} Webinar Credit{plan.webinarCredits > 1 ? 's' : ''}</strong></span>
+                      <div className="flex items-start gap-2.5">
+                        <Ticket className="h-4 w-4 text-gray-900 shrink-0 mt-0.5" />
+                        <span className="text-gray-600 leading-tight">Grants <strong>{plan.webinarCredits} Webinar Credit{plan.webinarCredits > 1 ? 's' : ''}</strong></span>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <Video className="h-5 w-5 text-gray-900 shrink-0 mt-0.5" />
-                        <span className="text-gray-600">Access to exclusive weekend webinars</span>
+                      <div className="flex items-start gap-2.5">
+                        <Video className="h-4 w-4 text-gray-900 shrink-0 mt-0.5" />
+                        <span className="text-gray-600 leading-tight">Access to exclusive weekend webinars</span>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                        <span className="text-gray-500">No daily live sessions included</span>
+                      <div className="flex items-start gap-2.5">
+                        <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                        <span className="text-gray-500 leading-tight">No daily live sessions included</span>
                       </div>
                     </>
                   ) : (
                   /* FEATURES FOR SUBSCRIPTIONS */
                     <>
-                      <div className="flex items-start gap-3">
-                        <CalendarDays className="h-5 w-5 text-[#600694] shrink-0 mt-0.5" />
-                        <span className="text-gray-600">Access to <strong>Daily Live Sessions</strong></span>
+                      <div className="flex items-start gap-2.5">
+                        <CalendarDays className="h-4 w-4 text-[#600694] shrink-0 mt-0.5" />
+                        <span className="text-gray-600 leading-tight">Access to <strong>Daily Live Sessions</strong></span>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <Video className="h-5 w-5 text-[#600694] shrink-0 mt-0.5" />
-                        <span className="text-gray-600"><strong>{plan.webinarCredits} Free Webinar Credit{plan.webinarCredits > 1 ? 's' : ''}</strong> per month</span>
+                      <div className="flex items-start gap-2.5">
+                        <Video className="h-4 w-4 text-[#600694] shrink-0 mt-0.5" />
+                        <span className="text-gray-600 leading-tight"><strong>{plan.webinarCredits} Free Webinar Credit{plan.webinarCredits > 1 ? 's' : ''}</strong> per month</span>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <ShieldCheck className="h-5 w-5 text-[#600694] shrink-0 mt-0.5" />
-                        <span className="text-gray-600">Automated email reminders</span>
+                      <div className="flex items-start gap-2.5">
+                        <ShieldCheck className="h-4 w-4 text-[#600694] shrink-0 mt-0.5" />
+                        <span className="text-gray-600 leading-tight">Automated email reminders</span>
                       </div>
                     </>
                   )}
                 </div>
 
-                {/* 🚨 UPDATED BUTTON LOGIC */}
+                {/* 🚨 BUTTON LOGIC */}
                 <button
                   onClick={() => {
                     if (isPass) {
@@ -230,16 +226,16 @@ export function HomeSubscription() {
                       navigate('/satsungs#alacarte-passes');
                     } else {
                       // Just navigate to the top of the Satsung page
-                      navigate('/satsungs');
+                      navigate('/subscription');
                     }
                   }}
-                  className={`w-full py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${
+                  className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 ${
                     isPremium ? 'bg-[#600694] text-white hover:bg-[#4a0473]' : 
-                    isPass ? 'bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white' : 
+                    isPass ? 'bg-white border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white' : 
                     'bg-gray-900 text-white hover:bg-gray-800'
                   }`}
                 >
-                  {isPass ? 'Buy Pass' : 'Subscribe Now'}
+                  {isPass ? 'Select Pass' : 'Subscribe Details'}
                 </button>
 
               </motion.div>

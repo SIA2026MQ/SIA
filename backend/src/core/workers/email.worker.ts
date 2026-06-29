@@ -39,21 +39,18 @@ export const emailWorker = new Worker(
     if (job.name === 'expiry-reminder') {
       console.log('[WORKER] Running daily subscription expiry check...');
 
-      // Calculate the date exactly 3 days from right now
       const threeDaysFromNow = new Date();
       threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
 
-      // Find all active subscriptions expiring in exactly 3 days
       const expiringSubscriptions = await prisma.userSubscription.findMany({
         where: {
           isActive: true,
-          // We look for dates between the start of that day and the end of that day
           expiryDate: {
             gte: new Date(threeDaysFromNow.setHours(0, 0, 0, 0)),
             lte: new Date(threeDaysFromNow.setHours(23, 59, 59, 999)),
           },
         },
-        include: { user: true, plan: true }, // Pull the user's email and plan details
+        include: { user: true, plan: true }, 
       });
 
       for (const sub of expiringSubscriptions) {
@@ -101,6 +98,30 @@ export const emailWorker = new Worker(
         await sendEmail(user.email, subject, html);
         console.log(`[WORKER] Sent Webinar Zoom Link to ${user.email}`);
       }
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. ACCOUNT BLOCKED NOTIFICATION (Triggered by Admin)
+    // -------------------------------------------------------------------------
+    // 🚨 NEW: This handles the email event generated in admin.controller.ts
+    if (job.name === 'account-blocked') {
+      const { email, name } = job.data;
+      
+      const subject = `Important Account Update: Access Revoked`;
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <h2>Hello ${name},</h2>
+          <p>We are writing to inform you that your account on <strong>Shifting Into Awareness</strong> has been suspended.</p>
+          <p>You no longer have access to the platform, your enrolled courses, or live sessions.</p>
+          <p>If you believe this action was taken in error or if you have questions, please reply directly to this email to contact our support team.</p>
+          <br/>
+          <p>Regards,</p>
+          <p><strong>The Shifting Into Awareness Team</strong></p>
+        </div>
+      `;
+      
+      await sendEmail(email, subject, html);
+      console.log(`[WORKER] Sent Account Suspended Email to ${email}`);
     }
   },
   { connection: redisConnection }

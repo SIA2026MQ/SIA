@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Video, CalendarDays, ShieldCheck, Ticket, X, IndianRupee, Loader2, Users, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Video, CalendarDays, ShieldCheck, Ticket, X, IndianRupee, Loader2, Users, Plus, Trash2, Minus } from "lucide-react";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
@@ -28,6 +28,7 @@ export default function SatsungsPage() {
   // 1. CHECKOUT MODAL STATE
   // -------------------------------------------------------------
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [quantity, setQuantity] = useState(1); 
   const [couponCode, setCouponCode] = useState("");
   const [discountPercent, setDiscountPercent] = useState(0);
   const [activeCouponId, setActiveCouponId] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export default function SatsungsPage() {
   const [isSubmittingGroup, setIsSubmittingGroup] = useState(false);
 
   // =============================================================
-  // 🚨 HASH SCROLLING LOGIC
+  // HASH SCROLLING LOGIC
   // =============================================================
   useEffect(() => {
     if (!loadingPlans) {
@@ -87,6 +88,7 @@ export default function SatsungsPage() {
       return;
     }
     setSelectedPlan(plan);
+    setQuantity(1); 
     setCouponCode("");
     setDiscountPercent(0);
     setActiveCouponId(null);
@@ -118,6 +120,10 @@ export default function SatsungsPage() {
     if (!selectedPlan || !dbUser) return;
     setProcessingId(selectedPlan.id);
 
+    // Calculate the exact final amount based on quantity
+    const baseTotal = selectedPlan.minPriceInr * quantity;
+    const finalTotal = baseTotal - (baseTotal * discountPercent) / 100;
+
     try {
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -129,7 +135,7 @@ export default function SatsungsPage() {
           const orderRes = await api.createUnifiedOrder({
             itemId: selectedPlan.id,
             itemType: "SUBSCRIPTION",
-            couponId: activeCouponId 
+            customAmountInr: finalTotal 
           });
 
           const options = {
@@ -137,7 +143,7 @@ export default function SatsungsPage() {
             amount: orderRes.amount,
             currency: orderRes.currency,
             name: "Shifting Into Awareness",
-            description: `${selectedPlan.name}`,
+            description: `${quantity}x ${selectedPlan.name}`,
             order_id: orderRes.razorpayOrderId,
             prefill: { name: dbUser.name, email: dbUser.email },
             theme: { color: "#600694" },
@@ -231,11 +237,8 @@ export default function SatsungsPage() {
     );
   }
 
-  // 🚨 NEW: Filter and calculate highest price dynamically
   const standardPlans = plans.filter(p => !p.name.toLowerCase().includes("webinar"));
   const topUpPlans = plans.filter(p => p.name.toLowerCase().includes("webinar"));
-  
-  // Calculate the highest INR price from standard plans
   const highestStandardPrice = Math.max(...standardPlans.map(p => p.minPriceInr), 0);
 
   return (
@@ -255,7 +258,6 @@ export default function SatsungsPage() {
           {/* STANDARD PLANS GRID */}
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
             {standardPlans.map((plan, index) => {
-              // 🚨 NEW: Dynamic Recommended check
               const isPremium = plan.minPriceInr === highestStandardPrice && highestStandardPrice > 0; 
               
               return (
@@ -387,16 +389,40 @@ export default function SatsungsPage() {
               <h3 className="text-2xl font-display text-[#600694] mb-2">Secure Checkout</h3>
               <p className="text-gray-500 text-sm mb-6">Complete your purchase for the {selectedPlan.name}.</p>
 
+              {/* 🚨 NEW: INCREMENT/DECREMENT QUANTITY SELECTOR */}
+              <div className="mb-6 flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <span className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                  Select Quantity
+                </span>
+                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-1 py-1 shadow-sm">
+                  <button
+                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                    className="p-2 text-gray-600 hover:text-[#600694] hover:bg-[#600694]/10 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                  >
+                    <Minus className="h-5 w-5" />
+                  </button>
+                  <span className="font-bold text-lg w-8 text-center text-[#600694]">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(q => q + 1)}
+                    className="p-2 text-gray-600 hover:text-[#600694] hover:bg-[#600694]/10 rounded-lg transition-colors"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* DYNAMIC PRICING BREAKDOWN */}
               <div className="space-y-3 mb-6 bg-gray-50 p-5 rounded-2xl border border-gray-100">
                 <div className="flex justify-between items-center text-gray-600 font-medium">
-                  <span>Standard Price</span>
-                  <span>₹{selectedPlan.minPriceInr}</span>
+                  <span>Standard Price (x{quantity})</span>
+                  <span>₹{selectedPlan.minPriceInr * quantity}</span>
                 </div>
                 
                 {discountPercent > 0 && (
                   <div className="flex justify-between items-center text-green-600 font-bold">
                     <span>Group Discount ({discountPercent}%)</span>
-                    <span>- ₹{(selectedPlan.minPriceInr * discountPercent) / 100}</span>
+                    <span>- ₹{(selectedPlan.minPriceInr * quantity * discountPercent) / 100}</span>
                   </div>
                 )}
                 
@@ -404,7 +430,7 @@ export default function SatsungsPage() {
                   <span>Total</span>
                   <span className="flex items-center gap-1">
                     <IndianRupee className="h-5 w-5"/> 
-                    {selectedPlan.minPriceInr - (selectedPlan.minPriceInr * discountPercent) / 100}
+                    {(selectedPlan.minPriceInr * quantity) - ((selectedPlan.minPriceInr * quantity * discountPercent) / 100)}
                   </span>
                 </div>
               </div>
@@ -442,7 +468,7 @@ export default function SatsungsPage() {
                 disabled={processingId !== null}
                 className="w-full py-4 bg-[#600694] text-white rounded-full font-bold text-lg hover:bg-[#4a0473] transition-colors shadow-md transform hover:-translate-y-0.5 disabled:transform-none disabled:bg-gray-400"
               >
-                {processingId !== null ? "Processing..." : `Pay ₹${selectedPlan.minPriceInr - (selectedPlan.minPriceInr * discountPercent) / 100} Securely`}
+                {processingId !== null ? "Processing..." : `Pay ₹${(selectedPlan.minPriceInr * quantity) - ((selectedPlan.minPriceInr * quantity * discountPercent) / 100)} Securely`}
               </button>
             </motion.div>
           </div>

@@ -1,7 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import Hls from "hls.js"; // 🚨 The official Enterprise Video Engine
-import { Loader2, ArrowLeft, PlayCircle, CheckCircle, Menu, X, ShieldCheck } from "lucide-react";
+import Hls from "hls.js";
+import Plyr from "plyr";
+import "plyr/dist/plyr.css";
+import {
+  Loader2, ArrowLeft, PlayCircle, CheckCircle, Menu, X,
+  ShieldCheck, MonitorPlay
+} from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
@@ -16,11 +21,16 @@ export default function LearnPage() {
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  const [isVideoBuffering, setIsVideoBuffering] = useState(false);
   const [completedVideos, setCompletedVideos] = useState<string[]>([]);
 
-  // 🚨 Native Video Reference
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // 🚨 We only use a container ref now. We will inject the video manually to stop React from crashing!
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const progressLockRef = useRef<Set<string>>(new Set());
 
+  // ---------------------------------------------------------------------------
+  // 1. DATA FETCHING
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (authLoading) return;
     if (!dbUser) {
@@ -57,36 +67,76 @@ export default function LearnPage() {
 
   const activeVideo = courseData?.videos?.[activeVideoIndex];
 
-  // 🚨 FIXED: Trust the secure Proxy URL sent directly from the Backend!
   const absoluteVideoUrl = useMemo(() => {
     if (!activeVideo) return "";
-    
-    // The backend already formatted this as http://localhost:5000/api/courses/secure-stream/...
-    const finalUrl = activeVideo.videoUrlR2; 
-    
-    console.log("🔥 ATTEMPTING TO STREAM VIA PROXY:", finalUrl);
-    return finalUrl;
+    return activeVideo.videoUrlR2;
   }, [activeVideo]);
 
   // ---------------------------------------------------------------------------
-  // 🚨 NATIVE HLS.JS INTEGRATION (Unbreakable Video Engine)
+  // 2. BULLETPROOF HLS.JS + PLYR ENGINE 
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (!absoluteVideoUrl || !videoRef.current) return;
+    if (!absoluteVideoUrl || !playerContainerRef.current) return;
     if (absoluteVideoUrl.includes('LOCKED')) return;
 
     let hls: Hls;
-    const video = videoRef.current;
+    let player: Plyr;
 
-    // We must wrap this in an async function to await the Firebase token
+    // 🚨 DOM CRASH FIX: Nuke the container and manually build the video tag
+    playerContainerRef.current.innerHTML = '';
+    const video = document.createElement('video');
+    video.className = 'w-full h-full object-contain';
+    video.crossOrigin = 'anonymous';
+    playerContainerRef.current.appendChild(video);
+
     const initializePlayer = async () => {
-      // 🚨 1. Grab the secure Firebase Token
       const token = auth.currentUser ? await auth.currentUser.getIdToken() : "";
+
+      const defaultOptions: Plyr.Options = {
+        controls: [
+          'play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume',
+          'settings', 'pip', 'airplay', 'fullscreen'
+        ],
+        settings: ['speed'],
+        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+        keyboard: { focused: true, global: true },
+        tooltips: { controls: true, seek: true },
+        fullscreen: { iosNative: true },
+        ratio: '16:9' // Forces perfect aspect ratio
+      };
+
+      // 🚨 Attach manual event listeners to the native element
+      video.addEventListener('waiting', () => setIsVideoBuffering(true));
+      video.addEventListener('playing', () => setIsVideoBuffering(false));
+      video.addEventListener('ended', () => {
+        if (courseData && activeVideoIndex < courseData.videos.length - 1) {
+          setActiveVideoIndex(prev => prev + 1);
+        }
+      });
+      video.addEventListener('timeupdate', async (e) => {
+        const target = e.target as HTMLVideoElement;
+        if (!target.duration || !activeVideo || !courseId) return;
+
+        const playedRatio = target.currentTime / target.duration;
+
+        // 🚨 500 ERROR FIX: Instantly lock the state locally so we don't spam the server
+        if (playedRatio >= 0.9 && !completedVideos.includes(activeVideo.id) && !progressLockRef.current.has(activeVideo.id)) {
+          progressLockRef.current.add(activeVideo.id);
+          setCompletedVideos(prev => [...prev, activeVideo.id]);
+
+          try {
+            await api.markVideoProgress(courseId, activeVideo.id);
+          } catch (error) {
+            console.error("Backend 500 Error: Progress API failed, but UI will continue normally.", error);
+          }
+        }
+      });
+      // Prevent right click
+      video.addEventListener('contextmenu', (e) => e.preventDefault());
 
       if (Hls.isSupported()) {
         hls = new Hls({
-          debug: true,
-          // 🚨 2. INJECT THE TOKEN: This tells HLS.js to attach your auth token to EVERY video chunk!
+          debug: false,
           xhrSetup: (xhr, url) => {
             xhr.setRequestHeader("Authorization", `Bearer ${token}`);
           }
@@ -96,131 +146,123 @@ export default function LearnPage() {
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          console.log("✅ HLS Manifest Loaded & Engine Attached!");
+          player = new Plyr(video, defaultOptions);
+          player.play().catch(() => console.log("Autoplay blocked."));
         });
-
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            console.error("🚨 FATAL HLS ERROR:", data);
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.error("Network Error: Trying to recover...");
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.error("Media Error: Trying to recover...");
-                hls.recoverMediaError();
-                break;
-              default:
-                hls.destroy();
-                break;
-            }
-          }
-        });
-      }
-      // Safari natively supports HLS, so we bypass the engine for Apple users
-      else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // Native video tags can't send headers, so we append the token to the URL as a fallback
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = `${absoluteVideoUrl}?token=${token}`;
+        player = new Plyr(video, defaultOptions);
       }
     };
 
     initializePlayer();
 
     return () => {
-      if (hls) hls.destroy(); // Clean up memory when user leaves the page
+      // 🚨 DOM CRASH FIX: Destroy everything cleanly on unmount
+      if (hls) hls.destroy();
+      if (player) player.destroy();
+      if (playerContainerRef.current) playerContainerRef.current.innerHTML = '';
     };
-  }, [absoluteVideoUrl]);
+  }, [absoluteVideoUrl, activeVideo, activeVideoIndex, courseData, courseId]);
 
-  // Enterprise Progress Tracker
-  const handleVideoProgress = async (state: { played: number }) => {
-    if (!activeVideo || !courseId) return;
-    if (state.played >= 0.9 && !completedVideos.includes(activeVideo.id)) {
-      setCompletedVideos(prev => [...prev, activeVideo.id]);
-      try {
-        await api.markVideoProgress(courseId, activeVideo.id);
-      } catch (error) {
-        console.error("Failed to save progress", error);
-      }
-    }
-  };
-
-  const handleVideoEnded = () => {
-    if (courseData && activeVideoIndex < courseData.videos.length - 1) {
-      setActiveVideoIndex(prev => prev + 1);
-    }
-  };
-
-  if (isLoading || authLoading) return <div className="flex min-h-screen items-center justify-center bg-[#0a0118]"><Loader2 className="h-12 w-12 animate-spin text-[#600694]" /></div>;
+  if (isLoading || authLoading) return <div className="flex min-h-screen items-center justify-center bg-[#060810]"><Loader2 className="h-12 w-12 animate-spin text-[#071A54]" /></div>;
   if (!courseData) return null;
 
   return (
-    <div className="flex h-screen w-full flex-col bg-gray-50 overflow-hidden font-sans">
-      <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm z-20">
+    <div className="flex h-[100dvh] w-full flex-col bg-[#F8FAFC] overflow-hidden font-sans">
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .plyr { width: 100%; height: 100%; --plyr-color-main: #071A54; }
+        .plyr video { max-height: 100% !important; object-fit: contain !important; }
+        .plyr__controls { z-index: 20 !important; }
+      `}} />
+
+      {/* HEADER */}
+      <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-6 shadow-sm z-30">
         <div className="flex items-center gap-4">
-          <Link to="/my-learning" className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#600694] transition-colors">
-            <ArrowLeft className="h-4 w-4" /> Dashboard
+          <Link to="/my-learning" className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#071A54] transition-colors">
+            <ArrowLeft className="h-5 w-5" /> <span className="hidden sm:inline">Dashboard</span>
           </Link>
-          <div className="hidden h-6 w-px bg-gray-300 md:block"></div>
-          <h1 className="hidden md:block font-display text-lg text-gray-900 truncate max-w-xl">{courseData.title}</h1>
+          <div className="h-6 w-px bg-gray-200"></div>
+          <h1 className="font-display text-base md:text-lg text-[#071A54] font-bold truncate max-w-[200px] sm:max-w-md lg:max-w-xl">
+            {courseData.title}
+          </h1>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">
-            <ShieldCheck size={14} /> Server Proxy Secured
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full uppercase tracking-wider">
+            <ShieldCheck size={14} /> Secure Stream
           </div>
-          <button className="md:hidden p-2 text-gray-600" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors z-50 relative" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden relative">
-        <main className="flex flex-1 flex-col overflow-y-auto bg-black">
+      <div className="flex flex-1 overflow-hidden relative bg-white">
+        {/* MAIN CONTENT AREA */}
+        <main className={`flex flex-col flex-1 overflow-y-auto bg-white transition-all duration-300 ease-in-out ${sidebarOpen ? 'md:mr-[380px]' : ''}`}>
 
-          {/* 🚨 NATIVE HTML5 PLAYER */}
-          <div className="w-full bg-black flex justify-center items-center relative" style={{ aspectRatio: '16/9', maxHeight: '75vh' }}>
-            {activeVideo && absoluteVideoUrl && !absoluteVideoUrl.includes('LOCKED') ? (
-              <video
-                ref={videoRef}
-                controls
-                controlsList="nodownload"
-                className="w-full h-full object-contain outline-none"
-                onTimeUpdate={(e) => {
-                  const video = e.target as HTMLVideoElement;
-                  if (video.duration) {
-                    const playedRatio = video.currentTime / video.duration;
-                    handleVideoProgress({ played: playedRatio });
-                  }
-                }}
-                onEnded={handleVideoEnded}
-              />
-            ) : (
-              <div className="text-gray-400">
-                {absoluteVideoUrl.includes('LOCKED') ? 'Course access required to view this video.' : 'No video available for this session.'}
+          {/* 🚨 RE-PROPORTIONED VIDEO CONTAINER */}
+          <div className="relative bg-[#060810] w-full aspect-video max-h-[65vh] flex justify-center items-center">
+
+            {/* The Black Box Container for Plyr */}
+            <div ref={playerContainerRef} className="w-full h-full absolute inset-0 z-10" />
+
+            {isVideoBuffering && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-none">
+                <Loader2 className="h-10 w-10 animate-spin text-white" />
+              </div>
+            )}
+
+            <div className="absolute top-6 left-6 z-30 opacity-40 pointer-events-none flex items-center gap-2 select-none">
+              <span className="text-white text-[10px] font-bold tracking-[0.2em] uppercase drop-shadow-md">SIA Academy</span>
+            </div>
+
+            {activeVideo && absoluteVideoUrl && absoluteVideoUrl.includes('LOCKED') && (
+              <div className="absolute inset-0 z-40 bg-[#060810] text-gray-400 flex flex-col items-center justify-center h-full gap-4">
+                <MonitorPlay size={48} className="text-gray-600 opacity-50" />
+                <span className="text-sm">Course access required to view this video.</span>
               </div>
             )}
           </div>
 
-          <div className="flex-1 bg-white p-6 md:p-10 border-t border-gray-200">
-            <h2 className="font-display text-3xl text-gray-900 mb-4">
-              {activeVideo ? `${activeVideoIndex + 1}. ${activeVideo.title}` : "Introduction"}
+          {/* 🚨 RE-PROPORTIONED TEXT SECTION */}
+          <div className="flex-1 bg-white p-6 md:p-10 max-w-5xl mx-auto w-full">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center bg-[#071A54]/10 text-[#071A54] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">
+                Lesson {activeVideoIndex + 1}
+              </span>
+              <span className="text-gray-300 text-sm font-medium">|</span>
+              <span className="text-[#081E60] text-xs font-bold tracking-wide uppercase">{courseData.category}</span>
+            </div>
+
+            {/* Smaller, more professional heading */}
+            <h2 className="font-display text-xl md:text-3xl text-gray-900 mb-4 leading-tight font-bold">
+              {activeVideo ? activeVideo.title : "Introduction"}
             </h2>
-            <div className="prose prose-purple max-w-none text-gray-600">
-              <p className="whitespace-pre-wrap leading-relaxed text-lg">{activeVideo?.description}</p>
+
+            {/* Smaller, standardized text sizing */}
+            <div className="prose prose-slate max-w-none text-gray-600">
+              <p className="whitespace-pre-wrap leading-relaxed text-sm md:text-base">{activeVideo?.description}</p>
             </div>
           </div>
         </main>
 
-        <aside className={`absolute right-0 top-0 h-full w-full max-w-[350px] bg-white border-l border-gray-200 flex flex-col z-10 transition-transform duration-300 md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full'}`}>
-          <div className="p-5 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-            <h3 className="font-bold text-gray-900">Course Content</h3>
-            <p className="text-xs text-muted-foreground mt-1">{completedVideos.length} / {courseData.videos?.length || 0} Sessions Completed</p>
-            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-4">
-              <div className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${(completedVideos.length / (courseData.videos?.length || 1)) * 100}%` }}></div>
+        {/* SIDEBAR PLAYLIST */}
+        <aside className={`absolute right-0 top-0 h-full w-full sm:w-[380px] bg-white border-l border-gray-100 flex flex-col z-20 transition-transform duration-300 ease-in-out shadow-2xl ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-6 border-b border-gray-100 bg-[#FAFAFA] flex-shrink-0">
+            <h3 className="font-bold text-[#071A54] text-lg mb-1">Course Curriculum</h3>
+            <div className="flex justify-between items-end mt-4 mb-2">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Your Progress</span>
+              <span className="text-xs font-extrabold text-[#081E60]">{Math.round((completedVideos.length / (courseData.videos?.length || 1)) * 100)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-[#081E60] h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${(completedVideos.length / (courseData.videos?.length || 1)) * 100}%` }}></div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto hide-scrollbar">
+          <div className="flex-1 overflow-y-auto hide-scrollbar bg-white">
             {courseData.videos?.map((video: any, index: number) => {
               const isActive = activeVideoIndex === index;
               const isCompleted = completedVideos.includes(video.id);
@@ -230,16 +272,22 @@ export default function LearnPage() {
                   key={video.id}
                   onClick={() => {
                     setActiveVideoIndex(index);
-                    if (window.innerWidth < 768) setSidebarOpen(false);
+                    if (window.innerWidth < 1024) setSidebarOpen(false);
                   }}
-                  className={`flex w-full items-start gap-4 border-b border-gray-100 p-4 text-left transition-colors hover:bg-gray-50 ${isActive ? "bg-purple-50/50 border-l-4 border-l-[#600694]" : "border-l-4 border-l-transparent"}`}
+                  className={`flex w-full items-start gap-4 p-5 text-left transition-all duration-200 border-b border-gray-50 hover:bg-[#F8FAFC] group ${isActive ? "bg-[#071A54]/5 hover:bg-[#071A54]/5 shadow-[inset_4px_0_0_#071A54]" : ""}`}
                 >
-                  <div className="mt-1 shrink-0">
-                    {isCompleted ? <CheckCircle className="h-5 w-5 text-emerald-500" /> : isActive ? <PlayCircle className="h-5 w-5 text-[#600694] fill-[#600694]/10" /> : <div className="h-5 w-5 rounded-full border-2 border-gray-300"></div>}
+                  <div className="mt-1 shrink-0 transition-transform group-hover:scale-110">
+                    {isCompleted ? (
+                      <CheckCircle className="h-5 w-5 text-emerald-500" />
+                    ) : isActive ? (
+                      <PlayCircle className="h-5 w-5 text-[#071A54] fill-[#071A54]/10" />
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 flex items-center justify-center text-[9px] text-gray-400 font-bold group-hover:border-[#071A54] group-hover:text-[#071A54]">{index + 1}</div>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold line-clamp-2 ${isActive ? "text-[#600694]" : "text-gray-700"}`}>{index + 1}. {video.title}</p>
-                    <p className="mt-1 text-xs text-gray-500 line-clamp-1">{video.description}</p>
+                  <div className="flex-1 min-w-0 pr-4">
+                    <p className={`text-sm font-bold line-clamp-2 leading-snug ${isActive ? "text-[#071A54]" : "text-gray-800"}`}>{video.title}</p>
+                    <p className="mt-1.5 text-xs text-gray-500 line-clamp-1 font-medium">{video.description}</p>
                   </div>
                 </button>
               );

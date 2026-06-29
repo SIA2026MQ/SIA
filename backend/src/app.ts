@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 import { S3Client } from '@aws-sdk/client-s3';
 import multerS3 from 'multer-s3';
 import adminRoutes from './modules/admin/admin.routes';
-
+import './core/services/queue.service';
 // Route Imports
 import authRoutes from './modules/users/auth.routes';
 import courseRoutes from './modules/courses/course.routes';
@@ -138,5 +138,5 @@ app.use('/api/webinars', webinarRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/retreats', retreatRoutes);
 app.use('/api/admin', adminRoutes);
-
+app.use('/api/auth', authRoutes);
 export default app;
