@@ -1,26 +1,51 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
 
-// Assuming you have a transporter set up like this:
+dotenv.config();
+
+// 1. Configure the transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: Number(process.env.SMTP_PORT) || 587,
   secure: Number(process.env.SMTP_PORT) === 465, // true for 465, false for other ports
   auth: {
-    user: process.env.SMTP_USER, // e.g., your admin email
-    pass: process.env.SMTP_PASS, // e.g., your app password
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS, 
   },
   tls: {
     rejectUnauthorized: false 
   }
 });
 
-// 🚨 UPDATED: The function to send the group discount code SEQUENTIALLY
+// -----------------------------------------------------------------------------
+// 🚨 REQUIRED GENERIC EMAIL FUNCTION: Used by Retreats, Payments, and Admin
+// -----------------------------------------------------------------------------
+export const sendEmail = async (to: string, subject: string, htmlBody: string) => {
+  try {
+    const info = await transporter.sendMail({
+      from: `"Shifting Into Awareness" <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html: htmlBody,
+    });
+    
+    console.log(`[MAIL SERVICE] 📧 Email successfully sent to ${to}`);
+    return info;
+  } catch (error) {
+    console.error(`[MAIL SERVICE] ❌ Failed to send email to ${to}:`, error);
+    throw error;
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 🚨 SPECIALIZED COUPON FUNCTION: Sends group discounts sequentially
+// -----------------------------------------------------------------------------
 export const sendGroupCouponEmail = async (emails: string[], code: string, discountPercent: number, groupLeaderName: string) => {
   let successCount = 0;
   
-  console.log(`Attempting to send ${emails.length} group emails sequentially...`);
+  console.log(`[MAIL SERVICE] Attempting to send ${emails.length} group emails sequentially...`);
 
-  // 🚨 FIX: We use a for...of loop instead of Promise.all.
+  // We use a for...of loop instead of Promise.all.
   // This sends them one by one, preventing Gmail from closing the socket!
   for (const recipientEmail of emails) {
     try {
@@ -66,16 +91,16 @@ export const sendGroupCouponEmail = async (emails: string[], code: string, disco
 
       // Await the transporter INSIDE the loop so it waits for completion before moving on
       await transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent successfully to: ${recipientEmail}`);
+      console.log(`[MAIL SERVICE] ✅ Email sent successfully to: ${recipientEmail}`);
       successCount++;
 
     } catch (error) {
       // If one friend's email fails, we catch it here so it doesn't crash the whole loop
-      console.error(`❌ Failed to send email to ${recipientEmail}:`, error);
+      console.error(`[MAIL SERVICE] ❌ Failed to send email to ${recipientEmail}:`, error);
     }
   }
 
-  console.log(`Finished email blast. Successfully sent ${successCount} out of ${emails.length}`);
+  console.log(`[MAIL SERVICE] Finished email blast. Successfully sent ${successCount} out of ${emails.length}`);
   
   // Return true if at least one email sent successfully
   return successCount > 0;

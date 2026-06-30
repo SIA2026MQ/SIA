@@ -161,14 +161,7 @@ export function SubscriptionTab({ handlePostSave }: { handlePostSave: () => void
         >
           <CreditCard className="h-4 w-4" /> Daily Sessions
         </button>
-        <button
-          onClick={() => setActivePanel("passes")}
-          className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors border-b-2 flex items-center gap-2 ${
-            activePanel === "passes" ? "text-[#600694] border-[#600694]" : "text-gray-500 border-transparent hover:text-gray-800"
-          }`}
-        >
-          <Ticket className="h-4 w-4" /> Webinar Passes
-        </button>
+        
       </div>
 
       {/* Plans Grid */}

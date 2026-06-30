@@ -13,9 +13,6 @@ export function StudentDashboardPanel({ courses, webinars, subscription, onChang
 
   useEffect(() => {
     api.getMyRetreatApplications().then(res => {
-      // 🚨 FIXED: Filter out orphaned applications! 
-      // If the admin deleted the retreat, 'app.retreat' will be null or undefined.
-      // This ensures we ONLY show applications that still have an active retreat attached.
       const validApplications = (res.applications || []).filter((app: any) => app && app.retreat);
       setMyApplications(validApplications);
     }).catch(err => console.error("Failed to fetch applications", err));
@@ -24,10 +21,7 @@ export function StudentDashboardPanel({ courses, webinars, subscription, onChang
   const practicesCount = courses.filter(c => c.category === "practices").length;
   const scripturesCount = courses.filter(c => c.category === "scriptures").length;
 
-  const stats = [
-    { label: "My Practices", value: practicesCount, icon: GraduationCap, bg: "bg-[#600694]", action: () => onChangeTab("practices") },
-    { label: "My Scriptures", value: scripturesCount, icon: BookOpen, bg: "bg-purple-800", action: () => onChangeTab("scriptures") },
-  ];
+  
 
   const handleRetreatPayment = async (app: any) => {
     try {
@@ -73,38 +67,41 @@ export function StudentDashboardPanel({ courses, webinars, subscription, onChang
   return (
     <div className="space-y-8">
       
+      {/* 🚨 UPDATED: Retreat Applications Grid (3 per row) */}
       {myApplications.length > 0 && (
-        <div className="mb-8 space-y-4">
-          <h3 className="font-display text-2xl text-[#600694]">My Retreat Applications</h3>
-          {myApplications.map((app) => (
-            <div key={app.id} className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-6">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* 🚨 ADDED OPTIONAL CHAINING (?.) TO PREVENT CRASHES */}
-                {app.retreat?.imageUrl ? (
-                  <img src={app.retreat.imageUrl} alt={app.retreat.title} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded-xl shrink-0 border border-gray-100 shadow-sm" />
-                ) : (
-                  <div className="w-full sm:w-24 h-40 sm:h-24 bg-gray-100 rounded-xl shrink-0 flex items-center justify-center border border-gray-200">
-                    <span className="text-xs font-bold text-gray-400">No Image</span>
+        <div className="mb-8">
+          <h3 className="font-display text-xl md:text-2xl text-[#600694] mb-4">My Retreat Applications</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myApplications.map((app) => (
+              <div key={app.id} className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                
+                <div className="flex flex-col gap-3">
+                  {app.retreat?.imageUrl ? (
+                    <img src={app.retreat.imageUrl} alt={app.retreat.title} className="w-full h-32 object-cover rounded-xl shrink-0 border border-gray-100" />
+                  ) : (
+                    <div className="w-full h-32 bg-gray-50 rounded-xl shrink-0 flex items-center justify-center border border-gray-100">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">No Image</span>
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-bold text-gray-900 text-base line-clamp-1">{app.retreat?.title || 'Deleted Retreat'}</h4>
+                    <p className="text-xs text-gray-500 mt-1">Status: <span className="font-semibold text-gray-700">{app.status}</span></p>
                   </div>
-                )}
-                <div>
-                  <h4 className="font-bold text-gray-900 text-lg">{app.retreat?.title || 'Deleted Retreat'}</h4>
-                  <p className="text-sm text-gray-500 mt-1">Status: <span className="font-semibold text-gray-700">{app.status}</span></p>
+                </div>
+                
+                <div className="mt-4 pt-3 border-t border-gray-50">
+                  {app.status === 'PENDING' && <div className="text-center w-full py-2 bg-yellow-50 text-yellow-700 rounded-xl text-xs font-bold border border-yellow-200">Under Review</div>}
+                  {app.status === 'REJECTED' && <div className="text-center w-full py-2 bg-red-50 text-red-700 rounded-xl text-xs font-bold border border-red-200">Application Closed</div>}
+                  {app.status === 'PAID' && <div className="text-center w-full py-2 bg-green-50 text-green-700 rounded-xl text-xs font-bold border border-green-200">Spot Confirmed!</div>}
+                  {app.status === 'APPROVED' && (
+                    <button onClick={() => handleRetreatPayment(app)} className="w-full bg-green-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-green-700 shadow-sm animate-pulse transition-colors">
+                      Pay Fees (₹{app.retreat?.priceInr || 0})
+                    </button>
+                  )}
                 </div>
               </div>
-              
-              <div className="shrink-0 flex items-center gap-3">
-                {app.status === 'PENDING' && <div className="px-4 py-2 bg-yellow-50 text-yellow-700 rounded-lg text-sm font-bold border border-yellow-200">Under Review</div>}
-                {app.status === 'REJECTED' && <div className="px-4 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-bold border border-red-200">Application Closed</div>}
-                {app.status === 'PAID' && <div className="px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-bold border border-green-200">Spot Confirmed!</div>}
-                {app.status === 'APPROVED' && (
-                  <button onClick={() => handleRetreatPayment(app)} className="bg-green-600 text-white px-6 py-3 rounded-full font-bold hover:bg-green-700 shadow-md animate-pulse transition-colors">
-                    Pay Fees Now (₹{app.retreat?.priceInr || 0})
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
@@ -133,43 +130,36 @@ export function StudentDashboardPanel({ courses, webinars, subscription, onChang
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {stats.map((s) => {
-          const Icon = s.icon;
-          return (
-            <div key={s.label} onClick={s.action} className="rounded-3xl bg-white p-6 border border-gray-100 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-1 transition-all">
-              <div className={cn("inline-grid h-14 w-14 place-items-center rounded-2xl text-white", s.bg)}>
-                <Icon className="h-7 w-7" />
-              </div>
-              <p className="mt-5 text-xs font-bold uppercase tracking-wider text-muted-foreground">{s.label}</p>
-              <p className="mt-1 font-display text-4xl text-[#600694]">{s.value}</p>
-            </div>
-          );
-        })}
-      </div>
-
+     
       <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
-        <div className="rounded-3xl bg-white p-8 border border-gray-100 shadow-sm h-fit">
-          <h3 className="font-display text-2xl text-[#600694] flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-yellow-500" /> Recent Learning
+        {/* 🚨 UPDATED: Recent Learning (More compact) */}
+        <div className="rounded-3xl bg-white p-6 border border-gray-100 shadow-sm h-fit">
+          <h3 className="font-display text-xl text-[#600694] flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-yellow-500" /> Recent Learning
           </h3>
-          <ul className="mt-6 space-y-4 divide-y divide-gray-100">
+          <ul className="mt-4 space-y-2 divide-y divide-gray-100">
             {courses.slice(0, 5).map((course) => (
-              <li key={course.id} className="flex items-center gap-4 pt-4 first:pt-0">
-                <span className="grid h-12 w-12 flex-none place-items-center rounded-xl bg-[#600694]/10 text-[#600694]"><GraduationCap className="h-6 w-6" /></span>
+              <li key={course.id} className="flex items-center gap-3 pt-3 first:pt-0">
+                <span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-[#600694]/10 text-[#600694]">
+                  <GraduationCap className="h-5 w-5" />
+                </span>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate font-semibold text-foreground">Continued <span className="text-[#600694]">"{course.title}"</span></p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><Clock className="h-3 w-3" /> Enrolled on: {course.lastAccessed}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    Continued <span className="text-[#600694]">"{course.title}"</span>
+                  </p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Clock className="h-3 w-3" /> Enrolled: {course.lastAccessed}
+                  </p>
                 </div>
-                <Link to={`/courses/${course.id}/watch`} className="flex-none p-3 rounded-full bg-[#600694]/10 text-[#600694] hover:bg-[#600694] hover:text-white transition-colors">
-                  <PlayCircle className="h-6 w-6" />
+                <Link to={`/learn/${course.id}`} className="flex-none p-2 rounded-full bg-[#600694]/10 text-[#600694] hover:bg-[#600694] hover:text-white transition-colors">
+                  <PlayCircle className="h-5 w-5" />
                 </Link>
               </li>
             ))}
             {courses.length === 0 && (
-               <div className="text-center p-8 border-2 border-dashed border-gray-200 rounded-2xl mt-4">
-                 <p className="text-muted-foreground">You haven't started any courses yet.</p>
-                 <button onClick={() => onChangeTab("practices")} className="mt-4 text-[#600694] font-semibold text-sm">Browse Catalog &rarr;</button>
+               <div className="text-center p-6 border-2 border-dashed border-gray-100 rounded-2xl mt-4">
+                 <p className="text-xs text-muted-foreground">You haven't started any courses yet.</p>
+                 <button onClick={() => onChangeTab("practices")} className="mt-3 text-[#600694] font-semibold text-xs">Browse Catalog &rarr;</button>
                </div>
             )}
           </ul>

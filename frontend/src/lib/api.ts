@@ -65,14 +65,18 @@ export const api = {
   // PAYMENTS & COUPONS
   // ---------------------------------------------------------------------------
   checkoutCart: async (items: any[]) => api.fetch("/payments/checkout-cart", { method: "POST", body: JSON.stringify({ items }) }),
-  
-  // 🚨 FIXED: Added couponId to the TypeScript definition to match your Checkout Modal!
+
   createUnifiedOrder: async (data: { itemId: string; itemType: string; customAmountInr?: number; couponId?: string | null }) => 
     api.fetch("/payments/create-order", { method: "POST", body: JSON.stringify(data) }),
-  
+
   verifyUnifiedPayment: async (paymentData: any) => api.fetch("/payments/verify", { method: "POST", body: JSON.stringify(paymentData) }),
   submitGroupRequest: async (data: { memberCount: number; emails: string[] }) => api.fetch("/payments/group-request", { method: "POST", body: JSON.stringify(data) }),
-  validateCoupon: async (code: string) => api.fetch("/payments/validate-coupon", { method: "POST", body: JSON.stringify({ code }) }),
+ validateCoupon: async (code: string, email?: string) => 
+    api.fetch("/payments/validate-coupon", { method: "POST", body: JSON.stringify({ code, email }) }),
+
+  // 🚨 NEW: Course Coupon Admin Endpoints
+  createCourseCoupon: async (data: any) => api.fetch("/payments/admin/course-coupons", { method: "POST", body: JSON.stringify(data) }),
+  getCourseCoupons: async () => api.fetch("/payments/admin/course-coupons", { method: "GET" }),
 
   // ---------------------------------------------------------------------------
   // SESSIONS, PLANS & SCHEDULES
@@ -107,6 +111,8 @@ export const api = {
   updateWebinar: async (id: string, data: any) => api.fetch(`/webinars/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteWebinar: async (id: string) => api.fetch(`/webinars/${id}`, { method: "DELETE" }),
   redeemWebinarCredit: async (webinarId: string) => api.fetch("/webinars/redeem", { method: "POST", body: JSON.stringify({ webinarId }) }),
+  logWebinarAttendance: async (webinarId: string) => 
+    api.fetch(`/webinars/${webinarId}/attend`, { method: "POST" }),
 
   // ---------------------------------------------------------------------------
   // RETREATS

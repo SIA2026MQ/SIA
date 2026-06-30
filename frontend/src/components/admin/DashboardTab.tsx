@@ -88,14 +88,7 @@ export function DashboardTab({ setActiveTab }: DashboardTabProps) {
         <p className="text-5xl font-display font-bold text-[#600694]">{stats.coupons}</p>
       </div>
 
-      {/* Card 5: Retreat Inquiries */}
-      <div 
-        onClick={() => setActiveTab("inquiries")}
-        className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center cursor-pointer transition-all hover:-translate-y-1 hover:border-[#600694]/30 hover:shadow-md"
-      >
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Retreat Inquiries</h3>
-        <p className="text-5xl font-display font-bold text-[#600694]">{stats.inquiries}</p>
-      </div>
+     
 
       {/* Card 6: Today's Session */}
       <div 

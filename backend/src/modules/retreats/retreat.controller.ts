@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../../core/services/db.service';
 import { AuthRequest } from '../../core/middlewares/auth.middleware';
 import { sendEmail } from '../../core/services/mail.service';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 // -----------------------------------------------------------------------------
 // 1. [ADMIN] Create Retreat
@@ -25,6 +26,15 @@ export const createRetreat = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+});
+
 // -----------------------------------------------------------------------------
 // 2. [ADMIN] Delete Retreat (NEW)
 // -----------------------------------------------------------------------------
@@ -33,21 +43,45 @@ export const deleteRetreat = async (req: Request, res: Response): Promise<void> 
   try {
     const { id } = req.params;
 
-    // 🚨 We use a Prisma Transaction to delete the applications FIRST, then the retreat.
-    // If either operation fails, the whole thing rolls back safely.
-    await prisma.$transaction([
-      prisma.retreatApplication.deleteMany({
-        where: { retreatId: id }
-      }),
-      prisma.retreat.delete({
-        where: { id }
-      })
-    ]);
+    // 1. Fetch the retreat first to get the imageUrl
+    const retreat = await prisma.retreat.findUnique({ where: { id } });
+    if (!retreat) {
+      res.status(404).json({ error: 'Retreat not found' });
+      return;
+    }
 
-    res.status(200).json({ message: 'Retreat and all associated applications deleted successfully.' });
+    // 🚨 2. Permanently delete the cover image from Cloudflare R2
+    if (retreat.imageUrl && process.env.R2_BUCKET_NAME) {
+      try {
+        // Extract the exact object key from the URL (e.g., "raw_uploads/images/12345-cover.jpg")
+        const urlObj = new URL(retreat.imageUrl);
+        const objectKey = urlObj.pathname.substring(1); // Removes the leading '/'
+
+        await s3Client.send(new DeleteObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: decodeURIComponent(objectKey)
+        }));
+        
+        console.log(`[BACKEND] 🗑️ Retreat Image deleted from R2: ${objectKey}`);
+      } catch (r2Error) {
+        console.warn("⚠️ Could not delete image from R2:", r2Error);
+      }
+    }
+
+    // 3. CASCADE DELETE: Wipe out all applications first
+    await prisma.retreatApplication.deleteMany({
+      where: { retreatId: id }
+    });
+
+    // 4. Delete the Retreat itself
+    await prisma.retreat.delete({
+      where: { id }
+    });
+
+    res.status(200).json({ message: 'Retreat, applications, and R2 image permanently deleted.' });
   } catch (error: any) {
-    console.error('Delete Retreat Error:', error);
-    res.status(500).json({ error: 'Failed to delete retreat' });
+    console.error("🔥 DATABASE ERROR DELETING RETREAT:", error);
+    res.status(500).json({ error: 'Failed to delete retreat', details: error.message });
   }
 };
 

@@ -202,3 +202,29 @@ export const updateWebinar = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ error: 'Failed to update webinar' });
   }
 };
+
+export const logWebinarAttendance = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const { webinarId } = req.params;
+
+    // Use upsert so if they click the link twice, it doesn't crash the database
+    await prisma.webinarAttendance.upsert({
+      where: {
+        userId_webinarId: { userId, webinarId }
+      },
+      update: {
+        joinedAt: new Date() // Updates their join time if they click again
+      },
+      create: {
+        userId,
+        webinarId,
+      }
+    });
+
+    res.status(200).json({ success: true, message: 'Webinar attendance logged' });
+  } catch (error) {
+    console.error("Failed to log webinar attendance:", error);
+    res.status(500).json({ error: 'Failed to log attendance' });
+  }
+};

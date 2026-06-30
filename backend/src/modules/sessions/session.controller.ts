@@ -109,46 +109,19 @@ export const getSessionHistory = async (req: Request, res: Response): Promise<vo
 // -----------------------------------------------------------------------------
 export const getTodaySession = async (req: Request, res: Response): Promise<void> => {
   try {
-    // ONLY fetch the link where the Admin selected "Enable"
     const session = await prisma.dailySession.findFirst({
       where: { isActive: true }
     });
 
+    // ✅ FIXED: Return 200 OK, but tell the frontend the session is null
     if (!session) {
-      res.status(404).json({ message: 'No live session active currently.' });
+      res.status(200).json({ session: null });
       return;
     }
 
-    let hasActiveSubscription = false;
-    const authHeader = req.headers.authorization;
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-        if (decodedToken.uid) {
-          const user = await prisma.user.findUnique({ where: { firebaseUid: decodedToken.uid } });
-          if (user) {
-            if (user.role === 'ADMIN') hasActiveSubscription = true;
-            else {
-              const activeSub = await prisma.userSubscription.findFirst({
-                where: { userId: user.id, isActive: true, expiryDate: { gte: new Date() } },
-              });
-              if (activeSub) hasActiveSubscription = true;
-            }
-          }
-        }
-      } catch (err) {}
-    }
-
-    if (!hasActiveSubscription) {
-      session.zoomLink = 'LOCKED - Active Subscription Required';
-    }
-
-    res.status(200).json({ session, hasActiveSubscription });
+    res.status(200).json({ session });
   } catch (error) {
-    console.error('Fetch Session Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 

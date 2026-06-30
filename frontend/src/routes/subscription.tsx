@@ -120,9 +120,9 @@ export default function SatsungsPage() {
     if (!selectedPlan || !dbUser) return;
     setProcessingId(selectedPlan.id);
 
-    // Calculate the exact final amount based on quantity
+    // Calculate the base total (Price x Quantity)
+    // We do NOT subtract the discount here. We let the backend do it securely!
     const baseTotal = selectedPlan.minPriceInr * quantity;
-    const finalTotal = baseTotal - (baseTotal * discountPercent) / 100;
 
     try {
       const script = document.createElement("script");
@@ -135,7 +135,8 @@ export default function SatsungsPage() {
           const orderRes = await api.createUnifiedOrder({
             itemId: selectedPlan.id,
             itemType: "SUBSCRIPTION",
-            customAmountInr: finalTotal 
+            customAmountInr: baseTotal, // 🚨 Send the un-discounted base total
+            couponId: activeCouponId    // 🚨 Send the coupon ID so the backend applies the math
           });
 
           const options = {
@@ -166,8 +167,9 @@ export default function SatsungsPage() {
 
           const rzp = new (window as any).Razorpay(options);
           rzp.open();
-        } catch (err) {
-          alert("Failed to initiate checkout.");
+        } catch (err: any) {
+          console.error(err);
+          alert("Failed to initiate checkout. Please check the console.");
         } finally {
           setProcessingId(null);
           setSelectedPlan(null); 
@@ -332,42 +334,7 @@ export default function SatsungsPage() {
           </div>
 
           {/* TOP-UP / WEBINAR ONLY PASSES */}
-          {topUpPlans.length > 0 && (
-            <div id="alacarte-passes" className="max-w-5xl mx-auto pt-10 border-t border-gray-200 scroll-mt-28">
-              <div className="text-center mb-8">
-                <h2 className="font-display text-3xl text-gray-900">A-La-Carte Passes</h2>
-                <p className="text-muted-foreground mt-2">Just want to attend a weekend webinar? Grab a one-time pass.</p>
-              </div>
-
-              <div className="flex overflow-x-auto pb-6 gap-6 hide-scrollbar justify-center">
-                {topUpPlans.map((plan) => (
-                  <div 
-                    key={plan.id} 
-                    className="min-w-[300px] max-w-[350px] flex-shrink-0 bg-gray-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between items-center text-center hover:shadow-md transition-shadow"
-                  >
-                    <div className="mb-4 flex flex-col items-center">
-                      <div className="h-10 w-10 bg-[#600694]/10 rounded-full flex items-center justify-center mb-3">
-                        <Ticket className="h-5 w-5 text-[#600694]" />
-                      </div>
-                      <h3 className="font-bold text-lg text-gray-900">{plan.name}</h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Grants {plan.webinarCredits} Webinar Credit{plan.webinarCredits > 1 ? 's' : ''}. No daily sessions.
-                      </p>
-                    </div>
-                    <div className="w-full mt-auto">
-                      <div className="text-xl font-bold text-[#600694] mb-4">₹{plan.minPriceInr}</div>
-                      <button
-                        onClick={() => openCheckoutModal(plan)}
-                        className="w-full py-2.5 rounded-xl font-bold text-sm bg-white border-2 border-[#600694] text-[#600694] hover:bg-[#600694] hover:text-white transition-colors"
-                      >
-                        Buy Pass
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+         
 
         </div>
       </div>

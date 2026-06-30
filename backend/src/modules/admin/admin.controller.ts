@@ -71,7 +71,11 @@ export const getAdminUsers = async (req: Request, res: Response): Promise<void> 
           courseAccess: { include: { course: true } },
           subscription: { include: { plan: true } },
           retreatApplications: { where: { status: 'PAID' }, include: { retreat: true } },
-          attendances: true 
+          
+          // 🚨 THE FIX IS HERE: We need ALL attendance and access records!
+          attendances: true, 
+          webinarAttendances: { include: { webinar: true } }, 
+          webinarAccess: { include: { webinar: true } } // <-- THIS WAS MISSING
         }
       }),
       prisma.user.count({ where: whereClause }) 
@@ -88,7 +92,7 @@ export const getAdminUsers = async (req: Request, res: Response): Promise<void> 
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch users." });
   }
-};
+};;
 
 // -----------------------------------------------------------------------------
 // Update User Level

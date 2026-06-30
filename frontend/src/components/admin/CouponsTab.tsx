@@ -1,26 +1,55 @@
 import { useState, useEffect } from "react";
-import { Trash2, Send, Users, CheckCircle2, Ticket, X, Percent, AlertTriangle, Loader2 } from "lucide-react";
+import { 
+  Trash2, Send, Users, CheckCircle2, Ticket, X, Percent, 
+  AlertTriangle, Loader2, PlusCircle, Calendar 
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 
 export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) {
+  // -------------------------------------------------------------
+  // STATE MANAGEMENT
+  // -------------------------------------------------------------
   const [requests, setRequests] = useState<any[]>([]);
-  const [coupons, setCoupons] = useState<any[]>([]);
+  const [groupCoupons, setGroupCoupons] = useState<any[]>([]);
+  const [courseCoupons, setCourseCoupons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal States
+  // Group Request Modal States
   const [requestToApprove, setRequestToApprove] = useState<any | null>(null);
   const [discountValue, setDiscountValue] = useState("20");
   const [isApproving, setIsApproving] = useState(false);
 
+  // Global Course Coupon Form States
+  const [courseCode, setCourseCode] = useState("");
+  const [courseDiscount, setCourseDiscount] = useState("");
+  const [courseMaxUses, setCourseMaxUses] = useState("");
+  const [courseExpiry, setCourseExpiry] = useState("");
+  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
+
+  // Shared Delete States
   const [couponToDelete, setCouponToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // -------------------------------------------------------------
+  // DATA FETCHING
+  // -------------------------------------------------------------
   const fetchData = async () => {
     try {
-      const res = await api.getAdminGroupRequests();
-      setRequests(res.requests || []);
-      setCoupons(res.coupons || []);
+      // Fetch both Group Requests/Coupons and Course Coupons in parallel
+      const [groupRes, courseRes] = await Promise.all([
+        api.getAdminGroupRequests(),
+        api.getCourseCoupons().catch(() => ({ coupons: [] })) // Fallback if no course coupons exist yet
+      ]);
+      
+      setRequests(groupRes.requests || []);
+      
+      // Filter the Group Coupons (Only those with allowedEmails)
+      const allGroupCoupons = groupRes.coupons || [];
+      setGroupCoupons(allGroupCoupons.filter((c: any) => c.allowedEmails && c.allowedEmails.length > 0));
+      
+      // Course Coupons (Those with empty allowedEmails)
+      setCourseCoupons(courseRes.coupons || []);
     } catch (error) {
       console.error("Failed to load coupons data");
     } finally {
@@ -31,7 +60,7 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
   useEffect(() => { fetchData(); }, []);
 
   // -------------------------------------------------------------
-  // APPROVAL PANEL LOGIC
+  // GROUP REQUEST APPROVAL LOGIC
   // -------------------------------------------------------------
   const openApprovePanel = (req: any) => {
     setRequestToApprove(req);
@@ -50,10 +79,10 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
     setIsApproving(true);
     try {
       const res = await api.approveGroupRequest(requestToApprove.id, discountNum);
-      alert(`Success! Coupon Code generated: ${res.coupon.code}\n\nThis code will ONLY work for the emails provided in the application.`);
+      alert(`Success! Group Coupon Code generated: ${res.coupon.code}\n\nThis code will ONLY work for the emails provided in the application.`);
       fetchData(); 
       if (handlePostSave) handlePostSave(); 
-      setRequestToApprove(null); // Close panel
+      setRequestToApprove(null); 
     } catch (error) {
       alert("Failed to approve request.");
     } finally {
@@ -62,7 +91,36 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
   };
 
   // -------------------------------------------------------------
-  // DELETE PANEL LOGIC
+  // CREATE COURSE (CART) COUPON LOGIC
+  // -------------------------------------------------------------
+  const handleCreateCourseCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreatingCourse(true);
+    try {
+      await api.createCourseCoupon({
+        code: courseCode.toUpperCase().replace(/\s+/g, ''),
+        discountPercent: Number(courseDiscount),
+        maxUses: Number(courseMaxUses),
+        expiryDate: courseExpiry ? new Date(courseExpiry).toISOString() : null,
+      });
+      
+      // Reset form
+      setCourseCode("");
+      setCourseDiscount("");
+      setCourseMaxUses("");
+      setCourseExpiry("");
+      
+      alert("Course coupon created successfully!");
+      fetchData();
+    } catch (error: any) {
+      alert(error.message || "Failed to create course coupon.");
+    } finally {
+      setIsCreatingCourse(false);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // SHARED DELETE LOGIC
   // -------------------------------------------------------------
   const openDeletePanel = (coupon: any) => {
     setCouponToDelete(coupon);
@@ -74,7 +132,7 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
     try {
       await api.deleteCoupon(couponToDelete.id);
       fetchData();
-      setCouponToDelete(null); // Close panel
+      setCouponToDelete(null); 
     } catch (error) {
       alert("Failed to delete coupon.");
     } finally {
@@ -87,9 +145,13 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
   const pendingRequests = requests.filter(r => r.status === "PENDING");
 
   return (
-    <div className="space-y-8 relative">
+    <div className="space-y-10 relative">
       
-      {/* 1. NOTIFICATION PANEL: PENDING REQUESTS */}
+      {/* ========================================================= */}
+      {/* SECTION 1: GROUP SUBSCRIPTION REQUESTS                    */}
+      {/* ========================================================= */}
+      
+      {/* NOTIFICATION PANEL: PENDING REQUESTS */}
       <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
         <h3 className="text-xl font-display text-[#600694] mb-6 flex items-center gap-2">
           <Users className="h-6 w-6" /> Action Required: Group Requests
@@ -124,14 +186,14 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
         )}
       </div>
 
-      {/* 2. ACTIVE COUPONS DIRECTORY */}
+      {/* ACTIVE GROUP COUPONS DIRECTORY */}
       <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
         <h3 className="text-xl font-display text-gray-900 mb-6 flex items-center gap-2">
-          <Ticket className="h-6 w-6 text-gray-400" /> Active Discount Codes
+          <Ticket className="h-6 w-6 text-gray-400" /> Active Group Subscription Codes
         </h3>
         
-        {coupons.length === 0 ? (
-          <p className="text-gray-500 text-sm">No active coupons generated yet.</p>
+        {groupCoupons.length === 0 ? (
+          <p className="text-gray-500 text-sm">No active group coupons generated yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[600px]">
@@ -145,7 +207,7 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {coupons.map(coupon => {
+                {groupCoupons.map(coupon => {
                   const isExhausted = coupon.usedCount >= coupon.maxUses;
                   return (
                     <tr key={coupon.id} className="hover:bg-gray-50/50 transition-colors">
@@ -181,12 +243,153 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
         )}
       </div>
 
+      <div className="h-px w-full bg-gray-200/60 my-8"></div>
+
+      {/* ========================================================= */}
+      {/* SECTION 2: COURSE CART COUPONS (MARKETING)                */}
+      {/* ========================================================= */}
+
+      {/* CREATE COURSE COUPON PANEL */}
+      <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
+        <h2 className="text-2xl font-bold text-[#600694] mb-6 flex items-center gap-2">
+          <PlusCircle className="h-6 w-6" /> Create Cart Coupon (Global)
+        </h2>
+        <p className="text-sm text-gray-500 mb-6">These coupons can be applied during checkout for any course purchase.</p>
+
+        <form onSubmit={handleCreateCourseCoupon} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+          
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Coupon Code</label>
+            <div className="relative">
+              <Ticket className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <input 
+                required 
+                value={courseCode} 
+                onChange={e => setCourseCode(e.target.value.toUpperCase().replace(/\s+/g, ''))}
+                placeholder="e.g. SUMMER20" 
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#600694] focus:ring-1 focus:ring-[#600694] outline-none uppercase font-bold" 
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Discount Percentage</label>
+            <div className="relative">
+              <Percent className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <input 
+                required 
+                type="number" min="1" max="100" 
+                value={courseDiscount} 
+                onChange={e => setCourseDiscount(e.target.value)}
+                placeholder="20" 
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#600694] focus:ring-1 focus:ring-[#600694] outline-none" 
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Max Uses (Inventory)</label>
+            <div className="relative">
+              <Users className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <input 
+                required 
+                type="number" min="1" 
+                value={courseMaxUses} 
+                onChange={e => setCourseMaxUses(e.target.value)}
+                placeholder="100" 
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#600694] focus:ring-1 focus:ring-[#600694] outline-none" 
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Expiry Date (Optional)</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <input 
+                type="datetime-local" 
+                value={courseExpiry} 
+                onChange={e => setCourseExpiry(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#600694] focus:ring-1 focus:ring-[#600694] outline-none" 
+              />
+            </div>
+          </div>
+
+          <div className="md:col-span-2 flex justify-end mt-2">
+            <button 
+              type="submit" 
+              disabled={isCreatingCourse}
+              className="bg-[#600694] text-white px-8 py-3 rounded-full font-bold hover:bg-[#4a0473] transition-all shadow-md disabled:opacity-70 flex items-center gap-2"
+            >
+              {isCreatingCourse ? <Loader2 className="animate-spin h-5 w-5" /> : <Ticket className="h-5 w-5" />}
+              Generate Cart Coupon
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* ACTIVE CART COUPONS DIRECTORY */}
+      <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
+        <h3 className="text-xl font-display text-gray-900 mb-6 flex items-center gap-2">
+          <Ticket className="h-6 w-6 text-gray-400" /> Active Cart Coupons
+        </h3>
+        
+        {courseCoupons.length === 0 ? (
+          <p className="text-gray-500 text-sm">No course coupons generated yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                  <th className="pb-3 pl-2">Code</th>
+                  <th className="pb-3">Discount</th>
+                  <th className="pb-3">Usage Remaining</th>
+                  <th className="pb-3">Expires</th>
+                  <th className="pb-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {courseCoupons.map(coupon => {
+                  const isExhausted = coupon.usedCount >= coupon.maxUses;
+                  const isExpired = coupon.expiryDate && new Date(coupon.expiryDate) < new Date();
+                  const isDead = isExhausted || isExpired;
+
+                  return (
+                    <tr key={coupon.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="py-4 pl-2 font-bold text-[#600694] text-lg">{coupon.code}</td>
+                      <td className="py-4 font-semibold text-gray-700">{coupon.discountPercent}% OFF</td>
+                      <td className="py-4">
+                        <span className={`text-sm font-bold ${isDead ? 'text-red-500' : 'text-emerald-600'}`}>
+                          {coupon.maxUses - coupon.usedCount} left <span className="text-gray-400 font-normal">({coupon.usedCount} used)</span>
+                        </span>
+                      </td>
+                      <td className="py-4 text-sm text-gray-600">
+                        {coupon.expiryDate ? new Date(coupon.expiryDate).toLocaleDateString() : 'Never'}
+                      </td>
+                      <td className="py-4 text-right">
+                        <button 
+                          onClick={() => openDeletePanel(coupon)} 
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Cart Coupon"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* ========================================= */}
-      {/* MODALS / PANELS                           */}
+      {/* SHARED MODALS / PANELS                    */}
       {/* ========================================= */}
       <AnimatePresence>
         
-        {/* APPROVE REQUEST PANEL */}
+        {/* APPROVE GROUP REQUEST PANEL */}
         {requestToApprove && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <motion.div 
@@ -242,7 +445,7 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
           </div>
         )}
 
-        {/* DELETE COUPON PANEL */}
+        {/* SHARED DELETE COUPON PANEL */}
         {couponToDelete && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <motion.div 
@@ -279,7 +482,7 @@ export function CouponsTab({ handlePostSave }: { handlePostSave?: () => void }) 
                   disabled={isDeleting}
                   className="w-full py-4 bg-white text-gray-700 rounded-xl font-bold hover:bg-gray-50 border border-gray-200 transition-colors"
                 >
-                  Keep Coupon
+                  Cancel
                 </button>
               </div>
             </motion.div>

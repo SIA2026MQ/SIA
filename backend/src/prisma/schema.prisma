@@ -26,12 +26,13 @@ model User {
   isBlocked           Boolean  @default(false)
   courseAccess        CourseAccess[]
   webinarAccess       WebinarAccess[]     
-  subscription        UserSubscription?    
+  subscription        UserSubscription?  
   orders              Order[]
   retreatApplications RetreatApplication[]
   groupRequests       GroupDiscountRequest[]
   videoProgress       VideoProgress[]
   attendances         DailySessionAttendance[]
+  webinarAttendances  WebinarAttendance[]
 }
 
 enum Role {
@@ -109,6 +110,7 @@ model Webinar {
   updatedAt     DateTime @default(now()) @updatedAt 
 
   accessLedger  WebinarAccess[]
+  attendances   WebinarAttendance[]
 }
 
 model WebinarAccess {
@@ -133,10 +135,7 @@ model DailySession {
   zoomLink    String   
   time        String?  
   
-  // 🚨 NEW: Distinguish between Satsung and QnA
   sessionType String   @default("Satsung") 
-  
-  // 🚨 NEW: Status Dropdown (Enable/Disable)
   isActive    Boolean  @default(false) 
 
   createdAt   DateTime @default(now())
@@ -144,11 +143,10 @@ model DailySession {
   attendances DailySessionAttendance[]
 }
 
-// 🚨 NEW: Schedule table for upcoming Satsungs and QnAs
 model SatsangSchedule {
   id        String   @id @default(uuid())
   title     String
-  category  String   @default("Satsung") // "Satsung" or "QnA"
+  category  String   @default("Satsung")
   date      DateTime
   time      String
 
@@ -220,7 +218,7 @@ model Order {
   amount            Float
   currency          String   
   status            OrderStatus @default(PENDING)
-  itemType          ItemType    
+  itemType          ItemType  
   itemId            String      
   couponId          String?
   coupon            Coupon?     @relation(fields: [couponId], references: [id])
@@ -255,18 +253,18 @@ enum ApplicationStatus {
 }
 
 model Retreat {
-  id            String   @id @default(uuid())
-  title         String
-  description   String
-  location      String
-  startDate     DateTime
-  endDate       DateTime
-  priceInr      Float
-  imageUrl      String?  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now()) @updatedAt 
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  location    String
+  startDate   DateTime
+  endDate     DateTime
+  priceInr    Float
+  imageUrl    String?  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt 
 
-  applications  RetreatApplication[]
+  applications RetreatApplication[]
 }
 
 model RetreatApplication {
@@ -274,18 +272,15 @@ model RetreatApplication {
   userId    String
   retreatId String
   
-  // User Form Details
   name      String
   email     String
   phone     String
   
-  // Tracking
   status    ApplicationStatus @default(PENDING)
   orderId   String?  @unique 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt 
 
-  // Relations
   user      User     @relation(fields: [userId], references: [id])
   retreat   Retreat  @relation(fields: [retreatId], references: [id])
 
@@ -333,7 +328,6 @@ model DailySessionAttendance {
   sessionId String
   joinedAt  DateTime @default(now())
 
-  // 🚨 ADDED onDelete: Cascade to PREVENT 500 ERRORS WHEN DELETING A SESSION!
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   session   DailySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
@@ -358,4 +352,19 @@ model VideoProgress {
   
   @@index([userId])
   @@index([courseId])
+}
+
+// -----------------------------------------------------------------------------
+// WEBINAR ATTENDANCE TRACKING
+// -----------------------------------------------------------------------------
+model WebinarAttendance {
+  id        String   @id @default(uuid())
+  userId    String
+  webinarId String
+  joinedAt  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  webinar   Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, webinarId]) 
 }

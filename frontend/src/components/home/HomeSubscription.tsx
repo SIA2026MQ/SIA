@@ -178,26 +178,14 @@ export function HomeSubscription() {
                   </div>
                 )}
 
-                <div className="mb-4 text-center mt-2">
-                  <h3 className="font-display text-xl text-gray-900">{plan.name}</h3>
-                </div>
+                
 
                 <div className="space-y-3 mb-6 flex-1 text-sm">
                   {/* FEATURES FOR WEBINAR PASS */}
                   {isPass ? (
                     <>
-                      <div className="flex items-start gap-2.5">
-                        <Ticket className="h-4 w-4 text-gray-900 shrink-0 mt-0.5" />
-                        <span className="text-gray-600 leading-tight">Grants <strong>{plan.webinarCredits} Webinar Credit{plan.webinarCredits > 1 ? 's' : ''}</strong></span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Video className="h-4 w-4 text-gray-900 shrink-0 mt-0.5" />
-                        <span className="text-gray-600 leading-tight">Access to exclusive weekend webinars</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                        <span className="text-gray-500 leading-tight">No daily live sessions included</span>
-                      </div>
+                      
+                      
                     </>
                   ) : (
                   /* FEATURES FOR SUBSCRIPTIONS */

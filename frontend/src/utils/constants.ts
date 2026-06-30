@@ -36,6 +36,7 @@ export const navLinks = [
   { label: "About", to: "/about" },
   { label: "Blog", to: "/blog" },
   { label: "Contact", to: "/contact" },
+  {label: "Subscription", to: "/subscription" },
 ] as const;
 
 export const webinars = [

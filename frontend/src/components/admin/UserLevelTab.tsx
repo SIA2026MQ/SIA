@@ -1,5 +1,6 @@
+import * as XLSX from 'xlsx';
 import { useState, useEffect } from "react";
-import { Loader2, CheckCircle2, ChevronLeft, ChevronRight, Award, Edit2, Search, ShieldBan, ShieldCheck } from "lucide-react";
+import { Loader2, CheckCircle2, ChevronLeft, ChevronRight, Award, Edit2, Search, ShieldBan, ShieldCheck, Download } from "lucide-react";
 import { api } from "@/lib/api";
 
 export function UserLevelTab() {
@@ -37,9 +38,9 @@ export function UserLevelTab() {
   // Debounced Search Effect
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      setPage(1); // Reset to page 1 on a new search
+      setPage(1); 
       fetchUsers(1, searchTerm);
-    }, 500); // Waits 500ms after user stops typing before searching
+    }, 500); 
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
@@ -77,6 +78,89 @@ export function UserLevelTab() {
     }
   };
 
+  // 🚨 NEW: CSV Generator Function
+  const handleDownloadReport = (user: any) => {
+  // 1. Build the data array row by row
+  const reportData: any[][] = [];
+
+  // --- USER PROFILE ---
+  reportData.push(["USER PROFILE", ""]);
+  reportData.push(["Name", user.name]);
+  reportData.push(["Email", user.email]);
+  reportData.push(["Level", user.level]);
+  reportData.push(["Status", user.isBlocked ? 'Blocked' : 'Active']);
+  reportData.push(["Joined Date", new Date(user.createdAt).toLocaleDateString()]);
+  reportData.push([]); // Empty row for spacing
+
+  // --- SUBSCRIPTION ---
+  reportData.push(["SUBSCRIPTION", ""]);
+  if (user.subscription?.isActive) {
+    reportData.push(["Plan", user.subscription.plan.name]);
+    reportData.push(["Remaining Webinar Credits", user.subscription.remainingCredits]);
+    reportData.push(["Expiry Date", new Date(user.subscription.expiryDate).toLocaleDateString()]);
+  } else {
+    reportData.push(["Status", "No Active Subscription"]);
+  }
+  reportData.push([]);
+
+  // --- DAILY SESSIONS ---
+  reportData.push(["DAILY SESSION ATTENDANCE HISTORY", ""]);
+  reportData.push(["Date", "Time Joined"]);
+  if (user.attendances && user.attendances.length > 0) {
+    user.attendances.forEach((a: any) => {
+      reportData.push([
+        new Date(a.joinedAt).toLocaleDateString(), 
+        new Date(a.joinedAt).toLocaleTimeString()
+      ]);
+    });
+  } else {
+    reportData.push(["No attendance records found.", ""]);
+  }
+  reportData.push([]);
+
+  // --- WEBINAR REGISTRATIONS ---
+  reportData.push(["WEBINAR REGISTRATIONS", ""]);
+  reportData.push(["Webinar Title", "Registration Date"]);
+  if (user.webinarAccess && user.webinarAccess.length > 0) {
+    user.webinarAccess.forEach((wa: any) => {
+      const title = wa.webinar?.title || "Unknown Webinar";
+      reportData.push([title, new Date(wa.purchasedAt).toLocaleDateString()]);
+    });
+  } else {
+    reportData.push(["No webinar registrations found.", ""]);
+  }
+  reportData.push([]);
+
+  // --- WEBINAR ATTENDANCE ---
+  reportData.push(["WEBINAR ATTENDANCE HISTORY", ""]);
+  reportData.push(["Webinar Title", "Time Joined"]);
+  if (user.webinarAttendances && user.webinarAttendances.length > 0) {
+    user.webinarAttendances.forEach((wa: any) => {
+      const title = wa.webinar?.title || "Unknown Webinar";
+      reportData.push([title, new Date(wa.joinedAt).toLocaleString()]);
+    });
+  } else {
+    reportData.push(["No webinar attendance records found.", ""]);
+  }
+
+  // 2. Convert data to a worksheet
+  const worksheet = XLSX.utils.aoa_to_sheet(reportData);
+
+  // 🚨 3. THE MAGIC FIX: Set column widths so data is never squished!
+  // wch = "width characters"
+  worksheet['!cols'] = [
+    { wch: 35 }, // Column A width
+    { wch: 25 }  // Column B width
+  ];
+
+  // 4. Create a new workbook and attach the sheet
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Student Report");
+
+  // 5. Trigger the download as a clean .xlsx file
+  XLSX.writeFile(workbook, `${user.name.replace(/\s+/g, '_')}_Report.xlsx`);
+};
+
   return (
     <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
       
@@ -111,8 +195,9 @@ export function UserLevelTab() {
                 <th className="px-4 py-4 font-bold">User</th>
                 <th className="px-4 py-4 font-bold">Subscription & Credits</th>
                 <th className="px-4 py-4 font-bold">Courses & Retreats</th>
-                <th className="px-4 py-4 font-bold text-center">Today's Session</th>
+                <th className="px-4 py-4 font-bold text-center">Live Attendance</th>
                 <th className="px-4 py-4 font-bold">Level</th>
+                <th className="px-4 py-4 font-bold text-center">Report</th>
                 <th className="px-4 py-4 font-bold text-right">Actions</th>
               </tr>
             </thead>
@@ -152,12 +237,12 @@ export function UserLevelTab() {
                   <td className="px-4 py-4 align-top">
                     <div className="space-y-2">
                       <div>
-                        <p className="text-xs font-bold text-gray-700">Courses: {user.courseAccess.length}</p>
-                        {user.courseAccess.slice(0, 2).map((c: any) => (
+                        <p className="text-xs font-bold text-gray-700">Courses: {user.courseAccess?.length || 0}</p>
+                        {user.courseAccess?.slice(0, 2).map((c: any) => (
                           <p key={c.id} className="text-[10px] text-gray-500 truncate max-w-[150px]">• {c.course.title}</p>
                         ))}
                       </div>
-                      {user.retreatApplications.length > 0 && (
+                      {user.retreatApplications?.length > 0 && (
                         <div>
                           <p className="text-xs font-bold text-gray-700 border-t border-gray-100 pt-1 mt-1">Retreats: {user.retreatApplications.length}</p>
                         </div>
@@ -167,13 +252,27 @@ export function UserLevelTab() {
 
                   {/* 4. TODAY'S SESSION ATTENDANCE */}
                   <td className="px-4 py-4 align-top text-center">
-                    {user.attendances && user.attendances.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-bold">
-                        <CheckCircle2 className="h-3 w-3" /> Attended
-                      </span>
-                    ) : (
-                      <span className="text-gray-300 text-xs">-</span>
-                    )}
+                    <div className="flex flex-col items-center gap-1.5">
+                      
+                      {/* Daily Satsung Attendance Badge */}
+                      {user.attendances && user.attendances.length > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-green-700 bg-green-100 border border-green-200 px-2 py-1 rounded-md text-[10px] font-bold" title={`${user.attendances.length} Satsungs Attended`}>
+                          <CheckCircle2 className="h-3 w-3" /> Satsungs: {user.attendances.length}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-[10px] italic">- No Satsungs -</span>
+                      )}
+
+                      {/* Webinar Attendance Badge */}
+                      {user.webinarAttendances && user.webinarAttendances.length > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-blue-700 bg-blue-100 border border-blue-200 px-2 py-1 rounded-md text-[10px] font-bold" title={`${user.webinarAttendances.length} Webinars Attended`}>
+                          <CheckCircle2 className="h-3 w-3" /> Webinars: {user.webinarAttendances.length}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-[10px] italic">- No Webinars -</span>
+                      )}
+                      
+                    </div>
                   </td>
 
                   {/* 5. EDITABLE LEVEL */}
@@ -210,7 +309,18 @@ export function UserLevelTab() {
                     )}
                   </td>
 
-                  {/* 6. BLOCK / UNBLOCK ACTION */}
+                  {/* 🚨 NEW 6. EXPORT/REPORT COLUMN */}
+                  <td className="px-4 py-4 align-top text-center">
+                    <button
+                      onClick={() => handleDownloadReport(user)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+                      title="Download Full Report (CSV)"
+                    >
+                      <Download className="h-5 w-5 mx-auto" />
+                    </button>
+                  </td>
+
+                  {/* 7. BLOCK / UNBLOCK ACTION */}
                   <td className="px-4 py-4 align-top text-right">
                     <button
                       onClick={() => handleToggleBlock(user.id, user.isBlocked)}

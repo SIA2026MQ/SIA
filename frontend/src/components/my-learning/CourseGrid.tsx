@@ -1,9 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Clock, PlayCircle, BookOpen, Flower2 } from "lucide-react";
 import { EnrolledCourse } from "./types";
 
 export function CourseGrid({ courses, category }: { courses: EnrolledCourse[], category: "practices" | "scriptures" }) {
+  // 1. Initialize the navigate function
+  const navigate = useNavigate();
+  
   const filteredCourses = courses.filter((c) => c.category === category);
 
   if (filteredCourses.length === 0) {
@@ -60,9 +63,16 @@ export function CourseGrid({ courses, category }: { courses: EnrolledCourse[], c
               </div>
             </div>
             
-            <Link to={`/courses/${course.id}/watch`} className="mt-6 flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#600694] px-5 py-2.5 text-sm font-bold text-[#600694] hover:bg-[#600694] hover:text-white transition-colors">
+            {/* 2. Replaced <Link> with <button> and applied the previous logic */}
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                navigate(`/learn/${course.id}`); 
+              }} 
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#600694] px-5 py-2.5 text-sm font-bold text-[#600694] hover:bg-[#600694] hover:text-white transition-colors"
+            >
               Resume Journey
-            </Link>
+            </button>
           </div>
         </motion.article>
       ))}

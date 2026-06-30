@@ -5,6 +5,7 @@ import {
   updateWebinar, 
   deleteWebinar ,
   redeemWebinarCredit,
+  logWebinarAttendance,
 } from './webinar.controller';
 import { authenticateJWT, requireAdmin } from '../../core/middlewares/auth.middleware';
 
@@ -18,5 +19,5 @@ router.post('/', authenticateJWT, requireAdmin, createWebinar);
 router.put('/:id', authenticateJWT, requireAdmin, updateWebinar);
 router.delete('/:id', authenticateJWT, requireAdmin, deleteWebinar);
 router.post('/redeem', authenticateJWT, redeemWebinarCredit);
-
+router.post('/:webinarId/attend', authenticateJWT, logWebinarAttendance);
 export default router;

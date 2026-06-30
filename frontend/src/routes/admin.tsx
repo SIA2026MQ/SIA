@@ -18,7 +18,7 @@ import { SubscriptionTab } from "@/components/admin/SubscriptionTab";
 import { UserLevelTab } from "@/components/admin/UserLevelTab";
 import { ScheduleTab } from "@/components/admin/ScheduleTab";
 
-type Tab = "dashboard" | "courses" | "webinars" | "retreats" | "blogs" | "coupons" | "inquiries" | "daily-session" | "subscriptions" | "users" | "schedules"; // Add "schedules" to the type
+type Tab = "dashboard" | "courses" | "webinars" | "retreats" | "blogs" | "coupons"  | "daily-session" | "subscriptions" | "users" | "schedules"; // Add "schedules" to the type
 
 export default function AdminPage() {
   // 🚨 NEW: Read the active tab directly from the URL!
@@ -91,8 +91,6 @@ export default function AdminPage() {
         return <BlogsTab handlePostSave={handlePostSave} />;
       case "coupons":
         return <CouponsTab handlePostSave={handlePostSave} />;
-      case "inquiries":
-        return <InquiriesTab />;
       case "users":
         return <UserLevelTab />;
       default:
@@ -108,7 +106,6 @@ export default function AdminPage() {
     { key: "retreats", label: "Retreats" },
     { key: "blogs", label: "Blogs" },
     { key: "coupons", label: "Coupons", notificationCount: pendingCoupons }, 
-    { key: "inquiries", label: "Inquiries" },
     { key: "daily-session", label: "Daily Session" },
     { key: "subscriptions", label: "Subscriptions" },
     { key: "users", label: "Users" },

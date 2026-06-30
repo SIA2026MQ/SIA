@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, Trash2, ShieldCheck, Loader2 } from "lucide-react";
+import {
+  ShoppingBag, Trash2, ShieldCheck, Loader2,
+  Minus, Plus, Tag, ArrowRight, HeartHandshake
+} from "lucide-react";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useCart } from "@/components/common/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -22,21 +25,75 @@ const loadRazorpayScript = () => {
 };
 
 export default function CartPage() {
-  const {
-    items, removeFromCart, subtotalLabel, discountLabel, totalLabel,
-    applyCoupon, clearCart, currency, couponCode
-  } = useCart();
-
+  const { items, removeFromCart, clearCart } = useCart();
   const { dbUser } = useAuth();
   const navigate = useNavigate();
 
-  const [couponInput, setCouponInput] = useState(couponCode || "");
+  // ---------------------------------------------------------------------------
+  // STATE MANAGEMENT
+  // ---------------------------------------------------------------------------
+  const [couponInput, setCouponInput] = useState("");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [purchased, setPurchased] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
+  // Dynamic Calculation States
+  const [localCouponId, setLocalCouponId] = useState<string | null>(null);
+  const [appliedDiscountPercent, setAppliedDiscountPercent] = useState<number>(0);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+
   // ---------------------------------------------------------------------------
-  // 🚨 ENTERPRISE CHECKOUT LOGIC (Razorpay Integration)
+  // DYNAMIC MATH & QUANTITY LOGIC
+  // ---------------------------------------------------------------------------
+  const getQty = (id: string) => quantities[id] || 1;
+
+  const updateQuantity = (id: string, delta: number) => {
+    setQuantities(prev => ({
+      ...prev,
+      [id]: Math.max(1, (prev[id] || 1) + delta) // Prevent going below 1
+    }));
+  };
+
+  const getPrice = (item: any) => Number(item.priceInr || item.priceINR || 0);
+
+  // Live real-time calculations
+  const { rawSubtotal, discountAmount, finalTotal } = useMemo(() => {
+    const subtotal = items.reduce((sum, item) => sum + (getPrice(item) * getQty(item.id)), 0);
+    const discount = (subtotal * appliedDiscountPercent) / 100;
+    const total = Math.max(0, subtotal - discount); // Prevent negative totals
+
+    return {
+      rawSubtotal: subtotal,
+      discountAmount: discount,
+      finalTotal: total
+    };
+  }, [items, quantities, appliedDiscountPercent]);
+
+  // ---------------------------------------------------------------------------
+  // COUPON VALIDATION
+  // ---------------------------------------------------------------------------
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) {
+      setMessage({ ok: false, text: "Please enter a coupon code." });
+      return;
+    }
+
+    try {
+      setMessage(null);
+      const validation = await api.validateCoupon(couponInput);
+
+      setLocalCouponId(validation.couponId);
+      setAppliedDiscountPercent(validation.discountPercent);
+      setMessage({ ok: true, text: `Coupon applied: ${validation.discountPercent}% OFF!` });
+    } catch (error: any) {
+      setLocalCouponId(null);
+      setAppliedDiscountPercent(0);
+      setMessage({ ok: false, text: error.message || "Invalid or expired coupon" });
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // ENTERPRISE CHECKOUT LOGIC
   // ---------------------------------------------------------------------------
   const handleCheckout = async () => {
     if (items.length === 0) return;
@@ -52,17 +109,29 @@ export default function CartPage() {
       setIsCheckingOut(true);
       setMessage(null);
 
-      // 1. Load Razorpay securely
+      // We only load the script, just in case we need it
       const isScriptLoaded = await loadRazorpayScript();
       if (!isScriptLoaded) throw new Error("Payment gateway failed to load. Please check your connection.");
 
-      // 2. Create the Order in your Node.js Backend
       const orderData = await api.createUnifiedOrder({
         itemId: courseToBuy.id,
         itemType: 'COURSE',
+        customAmountInr: rawSubtotal,
+        couponId: localCouponId || null
       });
 
-      // 3. Configure Razorpay UI Options
+      // 🚨 NEW: 100% DISCOUNT BYPASS!
+      // If the backend says this was free, skip Razorpay completely.
+      if (orderData.freeTransaction) {
+        setPurchased(true);
+        clearCart();
+        setTimeout(() => { navigate("/my-learning"); }, 3000);
+        return; // EXIT FUNCTION HERE!
+      }
+
+      // --------------------------------------------------------
+      // STANDARD PAYMENT FLOW (If orderData.freeTransaction is false)
+      // --------------------------------------------------------
       const options = {
         key: razorpayKey,
         amount: orderData.amount,
@@ -72,7 +141,6 @@ export default function CartPage() {
         order_id: orderData.razorpayOrderId,
         handler: async function (response: any) {
           try {
-            // 4. Verify the cryptographic signature on your backend
             await api.verifyUnifiedPayment({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
@@ -80,7 +148,6 @@ export default function CartPage() {
               dbOrderId: orderData.dbOrderId
             });
 
-            // 5. Success Flow!
             setPurchased(true);
             clearCart();
             setTimeout(() => { navigate("/my-learning"); }, 3000);
@@ -91,7 +158,6 @@ export default function CartPage() {
         theme: { color: "#600694" }
       };
 
-      // 6. Open the Razorpay Modal
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', function (response: any) {
         setMessage({ ok: false, text: `Payment Failed: ${response.error.description}` });
@@ -100,159 +166,185 @@ export default function CartPage() {
       rzp.open();
 
     } catch (error: any) {
-      setMessage({ ok: false, text: error.message || "Failed to start checkout. Please ensure you are logged in." });
+      setMessage({ ok: false, text: error.message || "Failed to start checkout." });
       setIsCheckingOut(false);
     }
   };
 
   return (
     <AnimatedPage>
-      <section className="section-odd pt-32 pb-16 min-h-[80vh]">
-        <div className="sia-container">
-          <h1 className="sia-h1 text-[#600694]">Your Cart</h1>
+      <section className="section-odd pt-32 pb-16 min-h-[80vh] bg-gray-50/30">
+        <div className="sia-container max-w-6xl">
+          <h1 className="font-display text-4xl text-gray-900 mb-2">Secure Checkout</h1>
+          <p className="text-gray-500 mb-8 flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-600" /> 256-bit encrypted secure payment
+          </p>
 
           {items.length === 0 && !purchased ? (
-            <div className="mt-8 sia-card text-center bg-white py-16 border border-gray-100 shadow-sm rounded-3xl">
-              <ShoppingBag className="mx-auto h-12 w-12 text-primary/30 mb-4" />
-              <h2 className="sia-h3 text-xl">Your cart is empty</h2>
-              <p className="mt-2 text-muted-foreground mb-6">Explore our offerings and add a course to continue.</p>
-              <button onClick={() => navigate("/courses")} className="sia-button-primary bg-[#600694] text-white">
-                Browse Courses
+            <div className="mt-8 sia-card text-center bg-white py-20 border border-gray-100 shadow-sm rounded-3xl">
+              <div className="bg-purple-50 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ShoppingBag className="h-10 w-10 text-[#600694]/40" />
+              </div>
+              <h2 className="font-display text-2xl text-gray-900">Your cart is empty</h2>
+              <p className="mt-2 text-gray-500 mb-8 max-w-md mx-auto">Explore our pathways and add a course to begin your journey of inner transformation.</p>
+              <button onClick={() => navigate("/courses")} className="bg-[#600694] hover:bg-[#4a0473] text-white px-8 py-3.5 rounded-full font-bold transition-all shadow-lg shadow-purple-900/20 flex items-center gap-2 mx-auto">
+                Explore Courses <ArrowRight size={18} />
               </button>
             </div>
           ) : purchased ? (
-            // 🚨 Enterprise Success Screen
-            <div className="mt-8 sia-card text-center bg-emerald-50 border border-emerald-200 py-16 rounded-3xl">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-6">
-                <ShieldCheck className="h-8 w-8" />
+            <div className="mt-8 sia-card text-center bg-emerald-50 border border-emerald-200 py-20 rounded-3xl relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-400"></div>
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-6">
+                <ShieldCheck className="h-10 w-10" />
               </div>
-              <h2 className="text-3xl font-display text-emerald-800">Payment Secured!</h2>
-              <p className="mt-3 text-emerald-700 font-medium">Your lifetime access has been unlocked. Redirecting you to your learning sanctuary...</p>
+              <h2 className="text-4xl font-display text-emerald-900 mb-3">Payment Secured!</h2>
+              <p className="text-emerald-700 font-medium text-lg">Your lifetime access has been unlocked. Redirecting you to your learning sanctuary...</p>
+              <Loader2 className="animate-spin text-emerald-600 h-6 w-6 mx-auto mt-8" />
             </div>
           ) : (
-            <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
+            <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
 
-              {/* CART ITEMS LIST (New Version Layout) */}
-              <div className="space-y-4">
-                {items.map((item) => (
-                  <article
-                    key={item.id}
-                    className="sia-card flex flex-col gap-5 sm:flex-row sm:items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    {/* Course Image */}
-                    <div className="h-28 w-full sm:w-40 shrink-0 overflow-hidden rounded-xl bg-gray-50 border border-gray-100 relative">
-                      {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                          <ShoppingBag className="h-8 w-8 opacity-20" />
-                        </div>
-                      )}
-                    </div>
+              {/* CART ITEMS LIST */}
+              <div className="space-y-6">
+                {items.map((item) => {
+                  const qty = getQty(item.id);
+                  const basePrice = getPrice(item);
+                  const lineTotal = basePrice * qty;
 
-                    {/* Course Details */}
-                    <div className="flex-1">
-                      {item.category && (
-                        <span className="mb-2 inline-block rounded-full bg-[#600694]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#600694]">
-                          {item.category}
-                        </span>
-                      )}
-                      <h2 className="font-display text-xl text-primary leading-snug line-clamp-2">
-                        {item.title}
-                      </h2>
-                      <p className="mt-2 font-semibold text-[#600694]">
-                        {item.priceLabel || `₹${item.priceINR || 0} / $${item.priceUSD || 0}`}
-                      </p>
-                    </div>
+                  return (
+                    <article key={item.id} className="sia-card flex flex-col sm:flex-row bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow gap-6 relative">
 
-                    {/* Action Controls */}
-                    <div className="flex items-center sm:ml-auto border-t sm:border-t-0 border-gray-100 pt-4 sm:pt-0">
+                      {/* Delete Button (Absolute Top Right) */}
                       <button
-                        className="rounded-full border border-gray-200 bg-gray-50 p-3 text-red-400 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors shadow-sm"
+                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         onClick={() => removeFromCart(item.id)}
-                        aria-label="Remove from cart"
+                        title="Remove from cart"
                       >
                         <Trash2 className="h-5 w-5" />
                       </button>
-                    </div>
-                  </article>
-                ))}
+
+                      {/* Course Image */}
+                      <div className="h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-2xl bg-gray-100 border border-gray-100">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center"><ShoppingBag className="h-8 w-8 text-gray-300" /></div>
+                        )}
+                      </div>
+
+                      {/* Course Details & Multiplier */}
+                      <div className="flex-1 flex flex-col justify-between pr-8">
+                        <div>
+                          {item.category && <span className="mb-2 inline-block rounded-full bg-purple-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#600694]">{item.category}</span>}
+                          <h2 className="font-display text-2xl text-gray-900 leading-tight mb-1">{item.title}</h2>
+                          <p className="text-sm text-gray-500 line-clamp-1">{item.description}</p>
+                        </div>
+
+                        {/* Quantity / Support Multiplier & Price */}
+                        <div className="flex flex-wrap items-end justify-between gap-4 mt-6">
+
+                          {/* Multiplier Control */}
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1"><HeartHandshake size={12} /> Support Multiplier</p>
+                            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-full p-1 w-fit">
+                              <button onClick={() => updateQuantity(item.id, -1)} disabled={qty <= 1} className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all">
+                                <Minus size={16} className="text-gray-600" />
+                              </button>
+                              <span className="w-8 text-center font-bold text-gray-900 text-sm">{qty}</span>
+                              <button onClick={() => updateQuantity(item.id, 1)} className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-[#600694] transition-all">
+                                <Plus size={16} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Line Total */}
+                          <div className="text-right">
+                            <p className="text-xs text-gray-400 font-medium mb-0.5">₹{basePrice.toLocaleString()} × {qty}</p>
+                            <p className="font-display text-2xl text-[#600694]">₹{lineTotal.toLocaleString()}</p>
+                          </div>
+
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
 
               {/* CHECKOUT SIDEBAR */}
-              <aside className="sia-card h-fit space-y-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm sticky top-28">
-                <h3 className="font-display text-2xl text-[#600694]">Order Summary</h3>
+              <aside className="sia-card h-fit bg-white p-8 rounded-3xl border border-gray-100 shadow-sm sticky top-28">
+                <h3 className="font-display text-2xl text-gray-900 mb-6">Order Summary</h3>
 
-                <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="space-y-4 text-sm text-gray-600 mb-6">
                   <div className="flex items-center justify-between">
                     <span>Subtotal</span>
-                    <span className="font-medium text-foreground">{subtotalLabel}</span>
+                    <span className="font-medium text-gray-900">₹{rawSubtotal.toLocaleString()}</span>
                   </div>
-                  {discountLabel && discountLabel !== "$0.00" && discountLabel !== "₹0.00" && (
-                    <div className="flex items-center justify-between text-green-600">
-                      <span>Discount</span>
-                      <span className="font-medium">- {discountLabel}</span>
+
+                  {discountAmount > 0 && (
+                    <div className="flex items-center justify-between text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
+                      <span className="flex items-center gap-1.5 font-semibold"><Tag size={14} /> Discount ({appliedDiscountPercent}%)</span>
+                      <span className="font-bold">- ₹{discountAmount.toLocaleString()}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between border-t border-gray-100 pt-4 text-lg">
-                    <span className="font-bold text-primary">Total</span>
-                    <span className="font-bold text-[#600694]">{totalLabel}</span>
+
+                  <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-2">
+                    <span className="text-lg font-bold text-gray-900">Total Amount</span>
+                    <span className="text-3xl font-display text-[#600694]">₹{finalTotal.toLocaleString()}</span>
                   </div>
                 </div>
 
-                <div className="space-y-2 pt-2">
-                  <input
-                    value={couponInput}
-                    onChange={(event) => setCouponInput(event.target.value)}
-                    placeholder="Enter coupon code"
-                    className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#600694]/20 uppercase"
-                  />
-                  <button
-                    type="button"
-                    className="sia-button-outline w-full rounded-xl h-12 text-[#600694] border-[#600694] hover:bg-[#600694]/5"
-                    onClick={() => {
-                      const result = applyCoupon(couponInput);
-                      setMessage({ ok: result.ok, text: result.message });
-                    }}
-                  >
-                    Apply Coupon
-                  </button>
-                </div>
-
-                {message && (
-                  <p className={`text-sm p-3 rounded-xl border ${message.ok ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-600'}`}>
-                    {message.text}
-                  </p>
-                )}
-
-                <div className="pt-4 border-t border-gray-100">
-                  {!dbUser ? (
+                {/* Coupon Input */}
+                <div className="space-y-3 mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">Have a coupon code?</label>
+                  <div className="flex gap-2">
+                    <input
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase().replace(/\s+/g, ''))}
+                      placeholder="ENTER CODE"
+                      className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] uppercase font-bold tracking-wider"
+                    />
                     <button
                       type="button"
-                      className="sia-button-primary w-full bg-[#600694] text-white h-12 rounded-xl text-sm font-bold shadow-md hover:bg-[#4a0473]"
-                      onClick={() => navigate("/login?redirectTo=/cart")}
+                      className="bg-gray-900 text-white px-4 rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors shrink-0"
+                      onClick={handleApplyCoupon}
                     >
-                      Sign in to Checkout
+                      Apply
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={isCheckingOut}
-                      className="sia-button-primary w-full bg-[#600694] text-white h-12 rounded-xl text-sm font-bold shadow-md hover:bg-[#4a0473] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
-                      onClick={handleCheckout}
-                    >
-                      {isCheckingOut ? (
-                        <><Loader2 className="h-5 w-5 animate-spin" /> Securing Payment...</>
-                      ) : (
-                        <><ShieldCheck className="h-5 w-5" /> Pay Securely</>
-                      )}
-                    </button>
+                  </div>
+                  {message && (
+                    <p className={`text-xs font-bold flex items-center gap-1.5 mt-2 ${message.ok ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {message.ok ? <ShieldCheck size={14} /> : <Trash2 size={14} />} {message.text}
+                    </p>
                   )}
                 </div>
+
+                {/* Checkout Button */}
+                {!dbUser ? (
+                  <button
+                    type="button"
+                    className="w-full bg-[#600694] text-white h-14 rounded-full text-base font-bold shadow-lg shadow-purple-900/20 hover:bg-[#4a0473] hover:-translate-y-0.5 transition-all"
+                    onClick={() => navigate("/login?redirectTo=/cart")}
+                  >
+                    Sign in to Secure Checkout
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isCheckingOut}
+                    className="w-full bg-[#600694] text-white h-14 rounded-full text-base font-bold shadow-lg shadow-purple-900/20 hover:bg-[#4a0473] hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+                    onClick={handleCheckout}
+                  >
+                    {isCheckingOut ? (
+                      <><Loader2 className="h-5 w-5 animate-spin" /> Initializing Gateway...</>
+                    ) : (
+                      <><ShieldCheck className="h-5 w-5" /> Pay ₹{finalTotal.toLocaleString()} Securely</>
+                    )}
+                  </button>
+                )}
+
+                <p className="text-center text-[10px] text-gray-400 mt-4 uppercase tracking-widest font-semibold">
+                  Transactions are safe & encrypted
+                </p>
               </aside>
             </div>
           )}
