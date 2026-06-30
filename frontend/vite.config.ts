@@ -10,6 +10,7 @@ export default defineConfig({
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
     },
+    
     proxy: {
       // Any request starting with /api will be forwarded to your backend
       '/api': {
