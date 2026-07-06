@@ -24,6 +24,12 @@ model User {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   isBlocked           Boolean  @default(false)
+  
+  // 🚨 NEW: Notification Tracking Timestamps
+  lastViewedWebinarsAt DateTime @default(now())
+  lastViewedRetreatsAt DateTime @default(now())
+  lastViewedSatsangsAt DateTime @default(now())
+
   courseAccess        CourseAccess[]
   webinarAccess       WebinarAccess[]     
   subscription        UserSubscription?  
@@ -367,4 +373,24 @@ model WebinarAttendance {
   webinar   Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
 
   @@unique([userId, webinarId]) 
+}
+
+// -----------------------------------------------------------------------------
+// 11. HISTORICAL MIGRATION (Quarantine Table)
+// -----------------------------------------------------------------------------
+model LegacyOrder {
+  id           String    @id @default(uuid())
+  orderNumber  String
+  email        String    // Indexed so the CRM can search it instantly
+  firstName    String?
+  lastName     String?
+  courseName   String    // The explicit string name from the CSV (e.g., "Inner Alchemy")
+  purchasedAt  DateTime
+
+  isMigrated   Boolean   @default(false) // Turns true once Admin grants access
+  migratedAt   DateTime?
+
+  createdAt    DateTime  @default(now())
+
+  @@index([email])
 }

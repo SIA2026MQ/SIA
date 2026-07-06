@@ -135,7 +135,7 @@ export function HomeSubscription() {
   const displayPlans = dbUser ? plans : plans.filter(p => !p.name.toLowerCase().includes("webinar"));
 
   return (
-    <section className="py-24 bg-[#f7e7e7] border-y border-gray-200">
+    <section className="py-24 bg-[#F7F3FA] border-y border-gray-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* =========================================

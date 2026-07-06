@@ -1,4 +1,3 @@
-
 import { AuthRequest } from '../../core/middlewares/auth.middleware';
 import { Request, Response } from 'express';
 import { prisma } from '../../core/services/db.service';
@@ -9,8 +8,6 @@ import { firebaseAdmin } from '../../core/services/firebase.service';
 // -----------------------------------------------------------------------------
 export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    // The authenticateJWT middleware already verified the Google token 
-    // and attached the Prisma user to req.user!
     const user = req.user;
 
     if (!user) {
@@ -32,10 +29,6 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
-
-// Import prisma and firebaseAdmin at the top if they aren't already there!
-// import { prisma } from '../../core/services/db.service';
-// import { firebaseAdmin } from '../../core/services/firebase.service';
 
 // -----------------------------------------------------------------------------
 // Get User Subscription
@@ -77,5 +70,71 @@ export const getUserSubscription = async (req: Request, res: Response): Promise<
   } catch (error) {
     console.error('Fetch Subscription Error:', error);
     res.status(500).json({ error: 'Internal server error while fetching subscription' });
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 🚨 NEW: Get Unread Notifications (Navbar Indicator)
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Get Unread Notifications (Navbar Indicator)
+// -----------------------------------------------------------------------------
+export const getEventNotifications = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user?.id } });
+    if (!user) { 
+      res.status(404).json({ error: "User not found" }); 
+      return; 
+    }
+
+    // Find the single newest event for each category
+    const latestWebinar = await prisma.webinar.findFirst({ orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+    const latestRetreat = await prisma.retreat.findFirst({ orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+    
+    // 🚨 UPDATED: Check BOTH DailySession and SatsangSchedule for Live Events
+    const latestDailySession = await prisma.dailySession.findFirst({ orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+    const latestSatsangSchedule = await prisma.satsangSchedule.findFirst({ orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+
+    let newestSatsangDate = new Date(0);
+    if (latestDailySession && latestDailySession.createdAt > newestSatsangDate) newestSatsangDate = latestDailySession.createdAt;
+    if (latestSatsangSchedule && latestSatsangSchedule.createdAt > newestSatsangDate) newestSatsangDate = latestSatsangSchedule.createdAt;
+
+    // Compare with user's last viewed timestamps
+    const hasNewWebinars = latestWebinar ? latestWebinar.createdAt > user.lastViewedWebinarsAt : false;
+    const hasNewRetreats = latestRetreat ? latestRetreat.createdAt > user.lastViewedRetreatsAt : false;
+    const hasNewSatsangs = newestSatsangDate.getTime() > 0 ? newestSatsangDate > user.lastViewedSatsangsAt : false;
+
+    res.status(200).json({ hasNewWebinars, hasNewRetreats, hasNewSatsangs });
+  } catch (err) {
+    console.error('Fetch Notifications Error:', err);
+    res.status(500).json({ error: "Failed to fetch notifications" });
+  }
+};
+
+// -----------------------------------------------------------------------------
+// 🚨 NEW: Mark Event Category as Read
+// -----------------------------------------------------------------------------
+export const markEventCategoryAsRead = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { category } = req.body;
+    const updateData: any = {};
+    
+    if (category === 'webinars') updateData.lastViewedWebinarsAt = new Date();
+    else if (category === 'retreats') updateData.lastViewedRetreatsAt = new Date();
+    else if (category === 'satsangs') updateData.lastViewedSatsangsAt = new Date();
+    else { 
+      res.status(400).json({ error: "Invalid category" }); 
+      return; 
+    }
+
+    await prisma.user.update({
+      where: { id: req.user?.id },
+      data: updateData
+    });
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Update Notifications Error:', err);
+    res.status(500).json({ error: "Failed to update notification status" });
   }
 };

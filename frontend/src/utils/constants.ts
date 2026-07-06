@@ -33,10 +33,10 @@ export const navLinks = [
   { label: "SIA", to: "/sia" },
   { label: "Events" },
   { label: "Courses", to: "/courses" },
-  { label: "About", to: "/about" },
   { label: "Blog", to: "/blog" },
   { label: "Contact", to: "/contact" },
-  {label: "Subscription", to: "/subscription" },
+  {label: "Membership", to: "/membership" },
+  {label: "Social Links", to: "/social-links" },
 ] as const;
 
 export const webinars = [

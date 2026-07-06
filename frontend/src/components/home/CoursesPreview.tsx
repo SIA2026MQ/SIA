@@ -48,7 +48,7 @@ export function CoursesPreview() {
   const hasMore = courses.length > 4; // Check if there are more hidden in the DB
 
   return (
-    <section className="section-odd py-16 bg-[#ffffff]">
+    <section className="section-odd py-16 bg-[#F7E7E7]">
       <div className="sia-container space-y-10 px-4">
         
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-12 gap-4">

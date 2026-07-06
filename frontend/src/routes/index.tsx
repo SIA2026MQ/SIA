@@ -7,6 +7,8 @@ import { GalleryStrip } from "@/components/home/GalleryStrip";
 import { HeroSection } from "@/components/home/HeroSection";
 import { WebinarCards } from "@/components/home/WebinarCards";
 import {HomeSubscription} from "@/components/home/HomeSubscription";
+import {Stages} from "@/components/home/Stages";
+import { ObjLink } from "@/components/home/ObjLink";
 
 export default function HomePage() {
   return (
@@ -15,6 +17,8 @@ export default function HomePage() {
       <AboutTeaser />
       <LotusDivider />
       <GalleryStrip />
+      <Stages />
+      <ObjLink />
       <BlogTicker />
       <CoursesPreview />
       <HomeSubscription />

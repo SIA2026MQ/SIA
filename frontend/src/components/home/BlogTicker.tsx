@@ -41,7 +41,7 @@ export function BlogTicker() {
   }
 
   return (
-    <section className="section-even overflow-hidden py-16 bg-[#f7e7e7] border-y border-[var(--color-gold)]/10">
+    <section className="section-even overflow-hidden py-16 bg-[#F7F3FA] border-y border-[var(--color-gold)]/10">
       
       {/* Header Container */}
       {/* Header Container */}

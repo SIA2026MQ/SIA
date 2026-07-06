@@ -130,7 +130,7 @@ export function HeroSection() {
               </>
             ) : (
               <>
-                <Link to="/sia" className="w-full sm:w-auto">
+                <Link to="/about" className="w-full sm:w-auto">
                   <button className="sia-button-primary w-full sm:w-auto justify-center text-white gap-2 flex items-center bg-[#a23adf] hover:bg-[#4a0473] px-6 py-3.5 sm:py-3 rounded-full text-sm sm:text-base">
                     Explore the Journey <ArrowRight className="h-4 w-4" />
                   </button>

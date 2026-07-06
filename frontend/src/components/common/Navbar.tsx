@@ -19,6 +19,9 @@ export function Navbar() {
   
   const [isSubscribed, setIsSubscribed] = useState(false);
 
+  // 🚨 NEW: Notification State
+const [notifications, setNotifications] = useState({ webinars: false, retreats: false, satsangs: false });
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -32,9 +35,10 @@ export function Navbar() {
     {
       label: "SIA",
       children: [
-        { label: "All About SiA", to: "/sia?tab=about" },
+        { label: "All About SiA", to: "/about" },
         { label: "Jake Light", to: "/sia?tab=jake" },
-        { label: "Activities", to: "/sia?tab=activities" },
+        { label: "Activities", to: "/activities" },
+        { label: "Join", to: "/activities" },
       ],
     },
     {
@@ -52,7 +56,51 @@ export function Navbar() {
         { label: "Scriptures", to: "/courses?cat=scriptures" },
       ],
     },
+    {
+      label: "Social Links",
+      children: [
+        { label: "Youtube", to: "https://www.youtube.com/shiftingintoawareness" },
+        { label: "LinkedIn", to: "https://linkedin.com" },
+        { label: "Facebook-SIA", to: "https://www.facebook.com/ShiftingIntoAwareness" },
+        { label: "Facebook-Jake Light", to: "https://www.facebook.com/MeJakeLight" },
+        { label: "Instagram", to: "https://www.instagram.com/shiftingintoawareness" },
+      ],
+    },
   ];
+
+  // 🚨 NEW: Fetch Notifications on Mount
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!dbUser || isBlocked) return;
+      try {
+        const res = await api.getEventNotifications();
+        setNotifications({
+          webinars: res.hasNewWebinars,
+          retreats: res.hasNewRetreats,
+          satsangs: res.hasNewSatsangs,
+        });
+      } catch (err) {
+        console.error("Failed to fetch notifications");
+      }
+    };
+    fetchNotifications();
+  }, [dbUser, isBlocked]);
+
+  // 🚨 NEW: Mark Notification as Read when clicked
+  // 🚨 UPDATED: Robust Click Handler
+  const handleDropdownClick = (childLabel: string) => {
+    // 1. Immediately hide the dot in the UI for a snappy feel
+    if (childLabel === "Webinars") {
+      setNotifications(p => ({ ...p, webinars: false }));
+      api.markEventCategoryAsRead("webinars").catch(console.error);
+    } else if (childLabel === "Retreats") {
+      setNotifications(p => ({ ...p, retreats: false }));
+      api.markEventCategoryAsRead("retreats").catch(console.error);
+    } else if (childLabel === "Satsungs & QnA") {
+      setNotifications(p => ({ ...p, satsangs: false }));
+      api.markEventCategoryAsRead("satsangs").catch(console.error);
+    }
+  };
 
   useEffect(() => {
     const fetchSubscriptionStatus = async () => {
@@ -121,6 +169,9 @@ export function Navbar() {
     return link.startsWith('http') ? link : `https://${link}`;
   };
 
+  // 🚨 NEW: Check if the main Events tab needs a dot
+  const hasEventNotification = notifications.webinars || notifications.retreats || notifications.satsangs;
+
   return (
     <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${needsSolidBg ? "bg-background/95 backdrop-blur-md border-b border-border/40 shadow-sm h-[72px]" : "bg-transparent border-transparent h-[88px]"}`}>
       <div className="sia-container flex h-full items-center justify-between gap-3 md:gap-6 lg:gap-10 px-4 sm:px-6">
@@ -138,22 +189,40 @@ export function Navbar() {
               const isDropdownOpen = activeDropdown === link.label;
               return (
                 <div key={link.label} className="relative py-4" onMouseEnter={() => setActiveDropdown(link.label)} onMouseLeave={() => setActiveDropdown(null)}>
-                  {/* 🚨 UPDATED: Wrapped the label in a Link if hasDropdown.to exists */}
                   <div className={`flex items-center gap-1 text-sm font-semibold transition-colors hover:text-primary cursor-pointer ${needsSolidBg ? 'text-foreground/90' : 'text-white drop-shadow-md'}`}>
                     {hasDropdown.to ? (
-                      <Link to={hasDropdown.to}>{link.label}</Link>
+                      <Link to={hasDropdown.to} className="flex items-center gap-1">
+                        {link.label}
+                        {link.label === "Events" && hasEventNotification && <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />}
+                      </Link>
                     ) : (
-                      <span>{link.label}</span>
+                      <span className="flex items-center gap-1">
+                        {link.label}
+                        {link.label === "Events" && hasEventNotification && <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />}
+                      </span>
                     )}
                     <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
                   </div>
 
                   <div className={`absolute left-1/2 top-full z-30 w-56 -translate-x-1/2 rounded-xl border border-border bg-card p-2 shadow-lg transition-all duration-200 ${isDropdownOpen ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-2"}`}>
-                    {hasDropdown.children.map((child, childIdx) => (
-                      <Link key={child.to} to={child.to} className="block rounded-lg px-3 py-2 text-sm font-medium text-foreground/85 transition hover:bg-accent hover:text-primary" onBlur={() => { if (childIdx === hasDropdown.children.length - 1) setActiveDropdown(null); }}>
-                        {child.label}
-                      </Link>
-                    ))}
+                    {hasDropdown.children.map((child, childIdx) => {
+                      // 🚨 NEW: Logic to show individual red dot per child
+                      const showDot = (child.label === "Webinars" && notifications.webinars) ||
+                                      (child.label === "Retreats" && notifications.retreats) ||
+                                      (child.label === "Satsungs & QnA" && notifications.satsangs);
+                      return (
+                        <Link 
+                          key={child.to} 
+                          to={child.to} 
+                          onClick={() => handleDropdownClick(child.label)}
+                          className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-foreground/85 transition hover:bg-accent hover:text-primary" 
+                          onBlur={() => { if (childIdx === hasDropdown.children.length - 1) setActiveDropdown(null); }}
+                        >
+                          <span>{child.label}</span>
+                          {showDot && <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />}
+                        </Link>
+                      );
+                    })}
                   </div>
                   {active && <span className={`absolute bottom-2 left-0 h-0.5 w-full transition-colors ${needsSolidBg ? 'bg-primary' : 'bg-white'}`} />}
                 </div>
@@ -320,13 +389,16 @@ export function Navbar() {
                 return (
                   <motion.div key={link.label} className="rounded-xl border border-border bg-card" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
                     <div className="flex items-center justify-between px-4 py-3">
-                      {/* 🚨 UPDATED: Wrapped Mobile label in a Link if hasDropdown.to exists */}
                       {hasDropdown.to ? (
-                        <Link to={hasDropdown.to} onClick={() => setOpen(false)} className="font-display text-2xl text-primary">
+                        <Link to={hasDropdown.to} onClick={() => setOpen(false)} className="flex items-center gap-2 font-display text-2xl text-primary">
                           {link.label}
+                          {link.label === "Events" && hasEventNotification && <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />}
                         </Link>
                       ) : (
-                        <span className="font-display text-2xl text-primary">{link.label}</span>
+                        <span className="flex items-center gap-2 font-display text-2xl text-primary">
+                          {link.label}
+                          {link.label === "Events" && hasEventNotification && <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />}
+                        </span>
                       )}
                       
                       <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-primary" onClick={() => setOpenMobileGroup(expanded ? null : hasDropdown.label)}>
@@ -335,11 +407,25 @@ export function Navbar() {
                     </div>
                     {expanded && (
                       <div className="space-y-1 border-t border-border p-2 bg-gray-50/50 rounded-b-xl">
-                        {hasDropdown.children.map((child) => (
-                          <Link key={child.to} to={child.to} className="block rounded-lg px-3 py-2 text-base font-semibold text-foreground/85 transition hover:bg-accent hover:text-primary" onClick={() => setOpen(false)}>
-                            {child.label}
-                          </Link>
-                        ))}
+                        {hasDropdown.children.map((child) => {
+                          const showDot = (child.label === "Webinars" && notifications.webinars) ||
+                                          (child.label === "Retreats" && notifications.retreats) ||
+                                          (child.label === "Satsungs & QnA" && notifications.satsangs);
+                          return (
+                            <Link 
+                              key={child.to} 
+                              to={child.to} 
+                              className="flex items-center justify-between rounded-lg px-3 py-2 text-base font-semibold text-foreground/85 transition hover:bg-accent hover:text-primary" 
+                              onClick={() => {
+                                setOpen(false);
+                                handleDropdownClick(child.label);
+                              }}
+                            >
+                              <span>{child.label}</span>
+                              {showDot && <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />}
+                            </Link>
+                          );
+                        })}
                       </div>
                     )}
                   </motion.div>

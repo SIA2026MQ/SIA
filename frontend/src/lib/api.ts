@@ -2,6 +2,7 @@ import { auth } from "./firebase";
 
 const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api";
 
+
 export const api = {
   async fetch(endpoint: string, options: RequestInit = {}) {
     const headers: Record<string, string> = {
@@ -35,6 +36,10 @@ export const api = {
   // ---------------------------------------------------------------------------
   getMe: async () => api.fetch("/auth/me", { method: "GET" }),
   getUserSubscription: async () => api.fetch("/auth/subscription", { method: "GET" }),
+  
+  // 🚨 NEW: Notifications
+ getEventNotifications: async () => api.fetch(`/auth/notifications?_t=${Date.now()}`, { method: "GET" }),
+  markEventCategoryAsRead: async (category: string) => api.fetch("/auth/notifications/read", { method: "POST", body: JSON.stringify({ category }) }),
 
   // ---------------------------------------------------------------------------
   // COURSES
@@ -71,10 +76,9 @@ export const api = {
 
   verifyUnifiedPayment: async (paymentData: any) => api.fetch("/payments/verify", { method: "POST", body: JSON.stringify(paymentData) }),
   submitGroupRequest: async (data: { memberCount: number; emails: string[] }) => api.fetch("/payments/group-request", { method: "POST", body: JSON.stringify(data) }),
- validateCoupon: async (code: string, email?: string) => 
+  validateCoupon: async (code: string, email?: string) => 
     api.fetch("/payments/validate-coupon", { method: "POST", body: JSON.stringify({ code, email }) }),
 
-  // 🚨 NEW: Course Coupon Admin Endpoints
   createCourseCoupon: async (data: any) => api.fetch("/payments/admin/course-coupons", { method: "POST", body: JSON.stringify(data) }),
   getCourseCoupons: async () => api.fetch("/payments/admin/course-coupons", { method: "GET" }),
 
