@@ -2,7 +2,6 @@ import { auth } from "./firebase";
 
 const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api";
 
-
 export const api = {
   async fetch(endpoint: string, options: RequestInit = {}) {
     const headers: Record<string, string> = {
@@ -23,7 +22,7 @@ export const api = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       if (response.status === 403) {
-        await auth.signOut(); 
+        await auth.signOut();
         throw new Error("Account Suspended");
       }
       throw new Error(errorData.error || `Request failed with status ${response.status}`);
@@ -36,9 +35,9 @@ export const api = {
   // ---------------------------------------------------------------------------
   getMe: async () => api.fetch("/auth/me", { method: "GET" }),
   getUserSubscription: async () => api.fetch("/auth/subscription", { method: "GET" }),
-  
+
   // 🚨 NEW: Notifications
- getEventNotifications: async () => api.fetch(`/auth/notifications?_t=${Date.now()}`, { method: "GET" }),
+  getEventNotifications: async () => api.fetch(`/auth/notifications?_t=${Date.now()}`, { method: "GET" }),
   markEventCategoryAsRead: async (category: string) => api.fetch("/auth/notifications/read", { method: "POST", body: JSON.stringify({ category }) }),
 
   // ---------------------------------------------------------------------------
@@ -51,7 +50,7 @@ export const api = {
   deleteCourse: async (courseId: string) => api.fetch(`/courses/${courseId}`, { method: "DELETE" }),
   addVideoToCourse: async (courseId: string, data: any) => api.fetch(`/courses/${courseId}/videos`, { method: "POST", body: JSON.stringify(data) }),
   getMyEnrolledCourses: async () => api.fetch("/courses/enrolled/me", { method: "GET" }),
-  deleteCourseVideo: async (courseId: string, videoId: string) => 
+  deleteCourseVideo: async (courseId: string, videoId: string) =>
     api.fetch(`/courses/${courseId}/videos/${videoId}`, { method: "DELETE" }),
 
   requestVideoUploadUrl: async (payload: { fileName: string; contentType: string; courseId: string }) =>
@@ -71,12 +70,12 @@ export const api = {
   // ---------------------------------------------------------------------------
   checkoutCart: async (items: any[]) => api.fetch("/payments/checkout-cart", { method: "POST", body: JSON.stringify({ items }) }),
 
-  createUnifiedOrder: async (data: { itemId: string; itemType: string; customAmountInr?: number; couponId?: string | null }) => 
+  createUnifiedOrder: async (data: { itemId: string; itemType: string; customAmountInr?: number; couponId?: string | null }) =>
     api.fetch("/payments/create-order", { method: "POST", body: JSON.stringify(data) }),
 
   verifyUnifiedPayment: async (paymentData: any) => api.fetch("/payments/verify", { method: "POST", body: JSON.stringify(paymentData) }),
   submitGroupRequest: async (data: { memberCount: number; emails: string[] }) => api.fetch("/payments/group-request", { method: "POST", body: JSON.stringify(data) }),
-  validateCoupon: async (code: string, email?: string) => 
+  validateCoupon: async (code: string, email?: string) =>
     api.fetch("/payments/validate-coupon", { method: "POST", body: JSON.stringify({ code, email }) }),
 
   createCourseCoupon: async (data: any) => api.fetch("/payments/admin/course-coupons", { method: "POST", body: JSON.stringify(data) }),
@@ -92,13 +91,13 @@ export const api = {
 
   getTodaySession: async () => api.fetch("/sessions/today", { method: "GET" }),
   getSessionHistory: async () => api.fetch("/sessions/history", { method: "GET" }),
-  createDailySession: async (data: { title: string; zoomLink: string; time: string; sessionType: string; isActive: boolean }) => 
+  createDailySession: async (data: { title: string; zoomLink: string; time: string; sessionType: string; isActive: boolean }) =>
     api.fetch("/sessions/today", { method: "POST", body: JSON.stringify(data) }),
-  updateDailySession: async (id: string, data: { title: string; zoomLink: string; time: string; sessionType: string; isActive: boolean }) => 
-    api.fetch(`/sessions/${id}`, { method: "PUT", body: JSON.stringify(data) }), 
+  updateDailySession: async (id: string, data: { title: string; zoomLink: string; time: string; sessionType: string; isActive: boolean }) =>
+    api.fetch(`/sessions/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteDailySession: async (id: string) => api.fetch(`/sessions/${id}`, { method: "DELETE" }),
   logSessionAttendance: async (sessionId: string) => api.fetch(`/sessions/${sessionId}/attend`, { method: "POST" }),
-  toggleDailySession: async (id: string, isActive: boolean) => 
+  toggleDailySession: async (id: string, isActive: boolean) =>
     api.fetch(`/sessions/${id}/toggle`, { method: "PATCH", body: JSON.stringify({ isActive }) }),
 
   getSchedules: async () => api.fetch("/sessions/schedules", { method: "GET" }),
@@ -110,12 +109,12 @@ export const api = {
   // WEBINARS
   // ---------------------------------------------------------------------------
   getWebinars: async () => api.fetch("/webinars", { method: "GET" }),
-  getUpcomingWebinars: async () => api.fetch("/webinars", { method: "GET" }), 
+  getUpcomingWebinars: async () => api.fetch("/webinars", { method: "GET" }),
   createWebinar: async (data: any) => api.fetch("/webinars", { method: "POST", body: JSON.stringify(data) }),
   updateWebinar: async (id: string, data: any) => api.fetch(`/webinars/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteWebinar: async (id: string) => api.fetch(`/webinars/${id}`, { method: "DELETE" }),
   redeemWebinarCredit: async (webinarId: string) => api.fetch("/webinars/redeem", { method: "POST", body: JSON.stringify({ webinarId }) }),
-  logWebinarAttendance: async (webinarId: string) => 
+  logWebinarAttendance: async (webinarId: string) =>
     api.fetch(`/webinars/${webinarId}/attend`, { method: "POST" }),
 
   // ---------------------------------------------------------------------------
@@ -140,7 +139,7 @@ export const api = {
   deleteBlog: async (id: string) => api.fetch(`/blogs/${id}`, { method: "DELETE" }),
 
   // ---------------------------------------------------------------------------
-  // ADMIN UTILS
+  // ADMIN UTILS & CRM
   // ---------------------------------------------------------------------------
   getAdminGroupRequests: async () => api.fetch("/payments/admin/group-requests", { method: "GET" }),
   approveGroupRequest: async (requestId: string, discountPercent: number) => api.fetch(`/payments/admin/group-requests/${requestId}/approve`, { method: "POST", body: JSON.stringify({ discountPercent }) }),
@@ -149,4 +148,9 @@ export const api = {
   getAdminUsers: async (page: number, search: string = "") => api.fetch(`/admin/users?page=${page}&search=${encodeURIComponent(search)}`, { method: "GET" }),
   updateUserLevel: async (userId: string, level: number) => api.fetch(`/admin/users/${userId}/level`, { method: "PUT", body: JSON.stringify({ level }) }),
   toggleUserBlock: async (userId: string, isBlocked: boolean) => api.fetch(`/admin/users/${userId}/block`, { method: "PUT", body: JSON.stringify({ isBlocked }) }),
+
+  // 🚨 NEW: Legacy Course Migrations
+  getPendingMigrations: async () => api.fetch("/admin/migrations/pending", { method: "GET" }),
+  grantMigrationAccess: async (data: { userId: string; email: string }) =>
+    api.fetch("/admin/migrations/grant", { method: "POST", body: JSON.stringify(data) }),
 };

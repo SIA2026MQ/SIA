@@ -18,6 +18,7 @@ import webinarRoutes from './modules/webinars/webinar.routes';
 import blogRoutes from './modules/blogs/blog.routes';
 import { sendEmail } from './core/services/mail.service';
 import retreatRoutes from './modules/retreats/retreat.routes';
+import migrationRoutes from './modules/admin/migration.routes';
 
 dotenv.config();
 
@@ -49,8 +50,8 @@ app.use(helmet({
 // 4. Global Rate Limiting
 // -----------------------------------------------------------------------------
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 1000, 
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
   message: { error: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -106,16 +107,16 @@ app.post('/api/upload', (req, res) => {
       console.error("🚨 CLOUDFLARE/MULTER ERROR:", err);
       return res.status(500).json({ error: 'Upload to Cloudflare failed', details: err.message });
     }
-    
+
     // 2. Catch Missing Files
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-    
+
     // 3. Success! Return the URL
     const fileKey = (req.file as any).key;
     const fileUrl = `${process.env.R2_PUBLIC_URL}/${fileKey}`;
-    
+
     res.json({ url: fileUrl });
   });
 });
@@ -126,6 +127,9 @@ app.post('/api/upload', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'success', message: 'Server is running perfectly.' });
 });
+
+//new for Legacy Migration
+app.use('/api/admin/migrations', migrationRoutes);
 
 // -----------------------------------------------------------------------------
 // 10. Mount API routes

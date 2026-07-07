@@ -14,20 +14,20 @@ export function Navbar() {
   const [compact, setCompact] = useState(false);
   const [menuUser, setMenuUser] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  
+
   const [liveSession, setLiveSession] = useState<{ id: string, zoomLink: string, title: string, time?: string, sessionType?: string } | null>(null);
-  
+
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   // 🚨 NEW: Notification State
-const [notifications, setNotifications] = useState({ webinars: false, retreats: false, satsangs: false });
+  const [notifications, setNotifications] = useState({ webinars: false, retreats: false, satsangs: false });
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { itemCount } = useCart();
   const { dbUser, logout, loading } = useAuth();
-  
+
   const isAdmin = dbUser?.role === "ADMIN";
   const isBlocked = dbUser?.isBlocked === true;
 
@@ -38,7 +38,7 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
         { label: "All About SiA", to: "/about" },
         { label: "Jake Light", to: "/sia?tab=jake" },
         { label: "Activities", to: "/activities" },
-        { label: "Join", to: "/activities" },
+        { label: "Join", to: "/join" },
       ],
     },
     {
@@ -137,7 +137,7 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
       }
     };
     fetchSession();
-  }, [dbUser, isBlocked]); 
+  }, [dbUser, isBlocked]);
 
   useEffect(() => {
     const onScroll = () => setCompact(window.scrollY > 24);
@@ -175,7 +175,7 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
   return (
     <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${needsSolidBg ? "bg-background/95 backdrop-blur-md border-b border-border/40 shadow-sm h-[72px]" : "bg-transparent border-transparent h-[88px]"}`}>
       <div className="sia-container flex h-full items-center justify-between gap-3 md:gap-6 lg:gap-10 px-4 sm:px-6">
-        
+
         <Link to="/" className="flex min-w-0 items-center gap-3">
           <img src={satsungLogo} alt="SIA Logo" className="h-19 w-21" />
         </Link>
@@ -208,14 +208,14 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
                     {hasDropdown.children.map((child, childIdx) => {
                       // 🚨 NEW: Logic to show individual red dot per child
                       const showDot = (child.label === "Webinars" && notifications.webinars) ||
-                                      (child.label === "Retreats" && notifications.retreats) ||
-                                      (child.label === "Satsungs & QnA" && notifications.satsangs);
+                        (child.label === "Retreats" && notifications.retreats) ||
+                        (child.label === "Satsungs & QnA" && notifications.satsangs);
                       return (
-                        <Link 
-                          key={child.to} 
-                          to={child.to} 
+                        <Link
+                          key={child.to}
+                          to={child.to}
                           onClick={() => handleDropdownClick(child.label)}
-                          className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-foreground/85 transition hover:bg-accent hover:text-primary" 
+                          className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-foreground/85 transition hover:bg-accent hover:text-primary"
                           onBlur={() => { if (childIdx === hasDropdown.children.length - 1) setActiveDropdown(null); }}
                         >
                           <span>{child.label}</span>
@@ -253,9 +253,8 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
                     } catch (err) { if (newTab) newTab.close(); }
                   }
                 }}
-                className={`flex items-center gap-2 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg transition-transform hover:scale-105 ${
-                  liveSession.sessionType === 'QnA' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'
-                }`}
+                className={`flex items-center gap-2 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg transition-transform hover:scale-105 ${liveSession.sessionType === 'QnA' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'
+                  }`}
               >
                 <Radio className="h-4 w-6 animate-pulse" />
                 Join Live {liveSession.sessionType === 'QnA' ? 'QnA' : 'Satsung'} {liveSession.time ? liveSession.time : ''}
@@ -268,11 +267,10 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
               <div className="relative">
                 <button
                   onClick={() => setMenuUser(!menuUser)}
-                  className={`flex items-center gap-2 h-11 px-5 border rounded-full text-sm font-semibold uppercase tracking-wider transition-all ${
-                    needsSolidBg 
-                      ? 'border-primary/30 text-primary hover:bg-accent' 
+                  className={`flex items-center gap-2 h-11 px-5 border rounded-full text-sm font-semibold uppercase tracking-wider transition-all ${needsSolidBg
+                      ? 'border-primary/30 text-primary hover:bg-accent'
                       : 'border-white/50 text-white bg-white/10 backdrop-blur-sm hover:bg-white hover:text-primary'
-                  }`}
+                    }`}
                 >
                   <User className="h-4 w-4" />
                   <span>{dbUser.name ? dbUser.name.split(' ')[0].toUpperCase() : "SIA"}</span>
@@ -348,7 +346,7 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
       <AnimatePresence>
         {open && (
           <motion.div className="absolute inset-x-0 top-full z-[70] min-h-[calc(100dvh-72px)] max-h-[calc(100dvh-72px)] overflow-y-auto border-t border-border bg-background px-6 pb-10 pt-6 xl:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-             <div className="mx-auto w-full max-w-lg space-y-4">
+            <div className="mx-auto w-full max-w-lg space-y-4">
               {dbUser && liveSession && !isBlocked && (
                 <button
                   onClick={async (e) => {
@@ -359,7 +357,7 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
                       try {
                         await api.logSessionAttendance(liveSession.id);
                         if (newTab) newTab.location.href = getAbsoluteUrl(liveSession.zoomLink);
-                        setOpen(false); 
+                        setOpen(false);
                       } catch (err) { if (newTab) newTab.close(); }
                     }
                   }}
@@ -400,7 +398,7 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
                           {link.label === "Events" && hasEventNotification && <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />}
                         </span>
                       )}
-                      
+
                       <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-primary" onClick={() => setOpenMobileGroup(expanded ? null : hasDropdown.label)}>
                         <ChevronDown className={`h-5 w-5 transition-transform ${expanded ? "rotate-180" : ""}`} />
                       </button>
@@ -409,13 +407,13 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
                       <div className="space-y-1 border-t border-border p-2 bg-gray-50/50 rounded-b-xl">
                         {hasDropdown.children.map((child) => {
                           const showDot = (child.label === "Webinars" && notifications.webinars) ||
-                                          (child.label === "Retreats" && notifications.retreats) ||
-                                          (child.label === "Satsungs & QnA" && notifications.satsangs);
+                            (child.label === "Retreats" && notifications.retreats) ||
+                            (child.label === "Satsungs & QnA" && notifications.satsangs);
                           return (
-                            <Link 
-                              key={child.to} 
-                              to={child.to} 
-                              className="flex items-center justify-between rounded-lg px-3 py-2 text-base font-semibold text-foreground/85 transition hover:bg-accent hover:text-primary" 
+                            <Link
+                              key={child.to}
+                              to={child.to}
+                              className="flex items-center justify-between rounded-lg px-3 py-2 text-base font-semibold text-foreground/85 transition hover:bg-accent hover:text-primary"
                               onClick={() => {
                                 setOpen(false);
                                 handleDropdownClick(child.label);
@@ -432,7 +430,7 @@ const [notifications, setNotifications] = useState({ webinars: false, retreats: 
                 );
               })}
             </div>
-            
+
             <div className="mx-auto mt-7 flex flex-col w-full max-w-lg gap-4 border-t border-gray-100 pt-6">
               {!loading && dbUser ? (
                 <div className="w-full flex flex-col gap-3">

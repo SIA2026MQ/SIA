@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2 } from "lucide-react"; 
+import { Loader2 } from "lucide-react";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
-import { useAuth } from "@/context/AuthContext"; 
+import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 
 // Import your modular tab components
 import { DashboardTab } from "@/components/admin/DashboardTab";
 import { CoursesTab } from "@/components/admin/CoursesTab";
-import { AdminWebinarTab } from "@/components/admin/AdminWebinarTab"; 
+import { AdminWebinarTab } from "@/components/admin/AdminWebinarTab";
 import { RetreatsTab } from "@/components/admin/RetreatsTab";
 import { BlogsTab } from "@/components/admin/BlogsTab";
 import { CouponsTab } from "@/components/admin/CouponsTab";
@@ -17,20 +17,22 @@ import { DailySessionTab } from "@/components/admin/DailySessionTab";
 import { SubscriptionTab } from "@/components/admin/SubscriptionTab";
 import { UserLevelTab } from "@/components/admin/UserLevelTab";
 import { ScheduleTab } from "@/components/admin/ScheduleTab";
+import { MigrationTab } from "@/components/admin/MigrationTab"; // 🚨 Fixed the import path
 
-type Tab = "dashboard" | "courses" | "webinars" | "retreats" | "blogs" | "coupons"  | "daily-session" | "subscriptions" | "users" | "schedules"; // Add "schedules" to the type
+// 🚨 Added "migrations" to the Tab type
+type Tab = "dashboard" | "courses" | "webinars" | "retreats" | "blogs" | "coupons" | "daily-session" | "subscriptions" | "users" | "schedules" | "migrations";
 
 export default function AdminPage() {
-  // 🚨 NEW: Read the active tab directly from the URL!
+  // 🚨 Read the active tab directly from the URL!
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get("tab") as Tab) || "dashboard";
 
-  // 🚨 NEW: Create a custom function to update the URL when a tab is clicked
+  // 🚨 Create a custom function to update the URL when a tab is clicked
   const setActiveTab = (tab: string) => {
     setSearchParams({ tab });
   };
 
-  const [pendingCoupons, setPendingCoupons] = useState(0); 
+  const [pendingCoupons, setPendingCoupons] = useState(0);
   const navigate = useNavigate();
 
   // 1. Pull the real user data and loading state from your secure Context
@@ -80,9 +82,9 @@ export default function AdminPage() {
       case "schedules":
         return <ScheduleTab />;
       case "webinars":
-        return <AdminWebinarTab />; 
+        return <AdminWebinarTab />;
       case "daily-session":
-        return <DailySessionTab handlePostSave={handlePostSave} />;  
+        return <DailySessionTab handlePostSave={handlePostSave} />;
       case "retreats":
         return <RetreatsTab handlePostSave={handlePostSave} />;
       case "subscriptions":
@@ -93,6 +95,8 @@ export default function AdminPage() {
         return <CouponsTab handlePostSave={handlePostSave} />;
       case "users":
         return <UserLevelTab />;
+      case "migrations":
+        return <MigrationTab />; // 🚨 Added the MigrationTab case
       default:
         return null;
     }
@@ -105,11 +109,12 @@ export default function AdminPage() {
     { key: "webinars", label: "Webinars" },
     { key: "retreats", label: "Retreats" },
     { key: "blogs", label: "Blogs" },
-    { key: "coupons", label: "Coupons", notificationCount: pendingCoupons }, 
+    { key: "coupons", label: "Coupons", notificationCount: pendingCoupons },
     { key: "daily-session", label: "Daily Session" },
     { key: "subscriptions", label: "Subscriptions" },
     { key: "users", label: "Users" },
     { key: "schedules", label: "Schedules" },
+    { key: "migrations", label: "Migrations" }, // 🚨 Added Migrations to the navigation list
   ];
 
   return (
@@ -146,12 +151,10 @@ export default function AdminPage() {
             {tabsList.map((tab) => (
               <button
                 key={tab.key}
-                className={`relative rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-300 ${
-                  activeTab === tab.key
+                className={`relative rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-300 ${activeTab === tab.key
                     ? "border-[#600694] bg-[#600694] text-white shadow-md"
                     : "border-[#600694]/30 text-[#600694] hover:bg-[#600694]/10"
-                }`}
-                // 🚨 Trigger URL update here
+                  }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 {tab.label}
