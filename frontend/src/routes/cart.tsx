@@ -8,6 +8,7 @@ import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useCart } from "@/components/common/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { useRegionalPricing } from "@/hooks/useRegionalPricing";
 
 // 🚨 Razorpay Injection Script
 const loadRazorpayScript = () => {
@@ -28,6 +29,9 @@ export default function CartPage() {
   const { items, removeFromCart, clearCart } = useCart();
   const { dbUser } = useAuth();
   const navigate = useNavigate();
+
+  // 🚨 NEW: Hook now returns isCurrencyReady for a safer UX
+  const { currency, getPrice, formatAmount, isCurrencyReady } = useRegionalPricing();
 
   // ---------------------------------------------------------------------------
   // STATE MANAGEMENT
@@ -54,9 +58,7 @@ export default function CartPage() {
     }));
   };
 
-  const getPrice = (item: any) => Number(item.priceInr || item.priceINR || 0);
-
-  // Live real-time calculations
+  // Live real-time calculations using the Regional Pricing Hook
   const { rawSubtotal, discountAmount, finalTotal } = useMemo(() => {
     const subtotal = items.reduce((sum, item) => sum + (getPrice(item) * getQty(item.id)), 0);
     const discount = (subtotal * appliedDiscountPercent) / 100;
@@ -67,7 +69,7 @@ export default function CartPage() {
       discountAmount: discount,
       finalTotal: total
     };
-  }, [items, quantities, appliedDiscountPercent]);
+  }, [items, quantities, appliedDiscountPercent, getPrice]);
 
   // ---------------------------------------------------------------------------
   // COUPON VALIDATION
@@ -93,7 +95,7 @@ export default function CartPage() {
   };
 
   // ---------------------------------------------------------------------------
-  // ENTERPRISE CHECKOUT LOGIC
+  // ENTERPRISE CHECKOUT LOGIC (HARDENED – ZERO TRUST ON CLIENT)
   // ---------------------------------------------------------------------------
   const handleCheckout = async () => {
     if (items.length === 0) return;
@@ -109,33 +111,47 @@ export default function CartPage() {
       setIsCheckingOut(true);
       setMessage(null);
 
-      // We only load the script, just in case we need it
       const isScriptLoaded = await loadRazorpayScript();
       if (!isScriptLoaded) throw new Error("Payment gateway failed to load. Please check your connection.");
 
+      // 🚨 1. NO CURRENCY SENT – backend determines it securely from IP
       const orderData = await api.createUnifiedOrder({
         itemId: courseToBuy.id,
         itemType: 'COURSE',
-        customAmountInr: rawSubtotal,
         couponId: localCouponId || null
       });
 
-      // 🚨 NEW: 100% DISCOUNT BYPASS!
-      // If the backend says this was free, skip Razorpay completely.
+      // 2. Free transaction path
       if (orderData.freeTransaction) {
         setPurchased(true);
         clearCart();
         setTimeout(() => { navigate("/my-learning"); }, 3000);
-        return; // EXIT FUNCTION HERE!
+        return;
       }
 
-      // --------------------------------------------------------
-      // STANDARD PAYMENT FLOW (If orderData.freeTransaction is false)
-      // --------------------------------------------------------
+      // 3. Strict validation of backend response
+      const paymentCurrency = orderData.currency;
+      const paymentAmount = orderData.amount;
+
+      if (!paymentCurrency) {
+        console.error("❗ Backend did not return currency in order response.");
+      }
+      if (!paymentAmount && paymentAmount !== 0) {
+        throw new Error("Backend did not return a valid amount.");
+      }
+
+      // 4. Mismatch warning – log only, backend is the authority
+      if (currency && paymentCurrency && currency !== paymentCurrency) {
+        console.warn(
+          `⚠️ Currency mismatch: frontend displays ${currency}, but backend order is in ${paymentCurrency}. Using backend value.`
+        );
+      }
+
+      // 5. Razorpay options – STRICTLY from backend response
       const options = {
         key: razorpayKey,
-        amount: orderData.amount,
-        currency: orderData.currency,
+        amount: paymentAmount,          // from backend (paise/cents)
+        currency: paymentCurrency || currency, // fallback to hook currency if backend missing (safety net)
         name: "Shifting Into Awareness",
         description: `Purchase: ${courseToBuy.title}`,
         order_id: orderData.razorpayOrderId,
@@ -214,7 +230,6 @@ export default function CartPage() {
                   return (
                     <article key={item.id} className="sia-card flex flex-col sm:flex-row bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow gap-6 relative">
 
-                      {/* Delete Button (Absolute Top Right) */}
                       <button
                         className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         onClick={() => removeFromCart(item.id)}
@@ -223,7 +238,6 @@ export default function CartPage() {
                         <Trash2 className="h-5 w-5" />
                       </button>
 
-                      {/* Course Image */}
                       <div className="h-32 w-full sm:w-48 shrink-0 overflow-hidden rounded-2xl bg-gray-100 border border-gray-100">
                         {item.imageUrl ? (
                           <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
@@ -232,7 +246,6 @@ export default function CartPage() {
                         )}
                       </div>
 
-                      {/* Course Details & Multiplier */}
                       <div className="flex-1 flex flex-col justify-between pr-8">
                         <div>
                           {item.category && <span className="mb-2 inline-block rounded-full bg-purple-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#600694]">{item.category}</span>}
@@ -240,10 +253,7 @@ export default function CartPage() {
                           <p className="text-sm text-gray-500 line-clamp-1">{item.description}</p>
                         </div>
 
-                        {/* Quantity / Support Multiplier & Price */}
                         <div className="flex flex-wrap items-end justify-between gap-4 mt-6">
-
-                          {/* Multiplier Control */}
                           <div>
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1"><HeartHandshake size={12} /> Support Multiplier</p>
                             <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-full p-1 w-fit">
@@ -257,12 +267,10 @@ export default function CartPage() {
                             </div>
                           </div>
 
-                          {/* Line Total */}
                           <div className="text-right">
-                            <p className="text-xs text-gray-400 font-medium mb-0.5">₹{basePrice.toLocaleString()} × {qty}</p>
-                            <p className="font-display text-2xl text-[#600694]">₹{lineTotal.toLocaleString()}</p>
+                            <p className="text-xs text-gray-400 font-medium mb-0.5">{formatAmount(basePrice)} × {qty}</p>
+                            <p className="font-display text-2xl text-[#600694]">{formatAmount(lineTotal)}</p>
                           </div>
-
                         </div>
                       </div>
                     </article>
@@ -277,23 +285,22 @@ export default function CartPage() {
                 <div className="space-y-4 text-sm text-gray-600 mb-6">
                   <div className="flex items-center justify-between">
                     <span>Subtotal</span>
-                    <span className="font-medium text-gray-900">₹{rawSubtotal.toLocaleString()}</span>
+                    <span className="font-medium text-gray-900">{formatAmount(rawSubtotal)}</span>
                   </div>
 
                   {discountAmount > 0 && (
                     <div className="flex items-center justify-between text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
                       <span className="flex items-center gap-1.5 font-semibold"><Tag size={14} /> Discount ({appliedDiscountPercent}%)</span>
-                      <span className="font-bold">- ₹{discountAmount.toLocaleString()}</span>
+                      <span className="font-bold">- {formatAmount(discountAmount)}</span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-2">
                     <span className="text-lg font-bold text-gray-900">Total Amount</span>
-                    <span className="text-3xl font-display text-[#600694]">₹{finalTotal.toLocaleString()}</span>
+                    <span className="text-3xl font-display text-[#600694]">{formatAmount(finalTotal)}</span>
                   </div>
                 </div>
 
-                {/* Coupon Input */}
                 <div className="space-y-3 mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">Have a coupon code?</label>
                   <div className="flex gap-2">
@@ -318,7 +325,7 @@ export default function CartPage() {
                   )}
                 </div>
 
-                {/* Checkout Button */}
+                {/* Checkout Button – now safe & currency‑aware */}
                 {!dbUser ? (
                   <button
                     type="button"
@@ -330,14 +337,16 @@ export default function CartPage() {
                 ) : (
                   <button
                     type="button"
-                    disabled={isCheckingOut}
+                    disabled={isCheckingOut || !isCurrencyReady}
                     className="w-full bg-[#600694] text-white h-14 rounded-full text-base font-bold shadow-lg shadow-purple-900/20 hover:bg-[#4a0473] hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
                     onClick={handleCheckout}
                   >
-                    {isCheckingOut ? (
+                    {!isCurrencyReady ? (
+                      <><Loader2 className="h-5 w-5 animate-spin" /> Loading currency...</>
+                    ) : isCheckingOut ? (
                       <><Loader2 className="h-5 w-5 animate-spin" /> Initializing Gateway...</>
                     ) : (
-                      <><ShieldCheck className="h-5 w-5" /> Pay ₹{finalTotal.toLocaleString()} Securely</>
+                      <><ShieldCheck className="h-5 w-5" /> Pay {formatAmount(finalTotal)} Securely</>
                     )}
                   </button>
                 )}

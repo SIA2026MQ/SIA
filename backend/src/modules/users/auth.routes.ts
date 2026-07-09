@@ -2,12 +2,12 @@ import { Router, Request, Response } from 'express';
 import { authenticateJWT, AuthRequest } from '../../core/middlewares/auth.middleware';
 
 // Adjust this import to match where your controllers live
-import { 
-  getMe, 
-  getUserSubscription, 
-  getEventNotifications, 
-  markEventCategoryAsRead 
-} from './auth.controller'; 
+import {
+  getMe,
+  getUserSubscription,
+  getEventNotifications,
+  markEventCategoryAsRead
+} from './auth.controller';
 
 const router = Router();
 

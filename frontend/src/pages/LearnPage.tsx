@@ -24,7 +24,6 @@ export default function LearnPage() {
   const [isVideoBuffering, setIsVideoBuffering] = useState(false);
   const [completedVideos, setCompletedVideos] = useState<string[]>([]);
 
-  // 🚨 We only use a container ref now. We will inject the video manually to stop React from crashing!
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressLockRef = useRef<Set<string>>(new Set());
 
@@ -72,105 +71,123 @@ export default function LearnPage() {
     return activeVideo.videoUrlR2;
   }, [activeVideo]);
 
+  // Helper: determine if we need HLS
+  const isHlsStream = useMemo(() => {
+    if (!absoluteVideoUrl) return false;
+    // Assume everything that ends with .m3u8 is HLS, else raw
+    return absoluteVideoUrl.endsWith('.m3u8');
+  }, [absoluteVideoUrl]);
+
   // ---------------------------------------------------------------------------
-  // 2. BULLETPROOF HLS.JS + PLYR ENGINE 
+  // 2. DUAL‑ENGINE PLAYER (HLS + raw)
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!absoluteVideoUrl || !playerContainerRef.current) return;
     if (absoluteVideoUrl.includes('LOCKED')) return;
 
-    let hls: Hls;
-    let player: Plyr;
+    let hls: Hls | undefined;
+    let player: Plyr | undefined;
 
-    // 🚨 DOM CRASH FIX: Nuke the container and manually build the video tag
+    // Wipe previous video element
     playerContainerRef.current.innerHTML = '';
     const video = document.createElement('video');
     video.className = 'w-full h-full object-contain';
     video.crossOrigin = 'anonymous';
     playerContainerRef.current.appendChild(video);
 
+    // Event listeners shared by both modes
+    video.addEventListener('waiting', () => setIsVideoBuffering(true));
+    video.addEventListener('playing', () => setIsVideoBuffering(false));
+    video.addEventListener('ended', () => {
+      if (courseData && activeVideoIndex < courseData.videos.length - 1) {
+        setActiveVideoIndex(prev => prev + 1);
+      }
+    });
+    video.addEventListener('timeupdate', async (e) => {
+      const target = e.target as HTMLVideoElement;
+      if (!target.duration || !activeVideo || !courseId) return;
+      const playedRatio = target.currentTime / target.duration;
+
+      if (playedRatio >= 0.9 && !completedVideos.includes(activeVideo.id) && !progressLockRef.current.has(activeVideo.id)) {
+        progressLockRef.current.add(activeVideo.id);
+        setCompletedVideos(prev => [...prev, activeVideo.id]);
+        try {
+          await api.markVideoProgress(courseId, activeVideo.id);
+        } catch (error) {
+          console.error("Progress API failed (non‑critical)", error);
+        }
+      }
+    });
+    video.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    const defaultOptions: Plyr.Options = {
+      controls: [
+        'play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume',
+        'settings', 'pip', 'airplay', 'fullscreen'
+      ],
+      settings: ['speed'],
+      speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+      keyboard: { focused: true, global: true },
+      tooltips: { controls: true, seek: true },
+      fullscreen: { iosNative: true },
+      ratio: '16:9'
+    };
+
     const initializePlayer = async () => {
-      const token = auth.currentUser ? await auth.currentUser.getIdToken() : "";
+      if (isHlsStream) {
+        // --- HLS BRANCH ---
+        const token = auth.currentUser ? await auth.currentUser.getIdToken() : "";
 
-      const defaultOptions: Plyr.Options = {
-        controls: [
-          'play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume',
-          'settings', 'pip', 'airplay', 'fullscreen'
-        ],
-        settings: ['speed'],
-        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-        keyboard: { focused: true, global: true },
-        tooltips: { controls: true, seek: true },
-        fullscreen: { iosNative: true },
-        ratio: '16:9' // Forces perfect aspect ratio
-      };
-
-      // 🚨 Attach manual event listeners to the native element
-      video.addEventListener('waiting', () => setIsVideoBuffering(true));
-      video.addEventListener('playing', () => setIsVideoBuffering(false));
-      video.addEventListener('ended', () => {
-        if (courseData && activeVideoIndex < courseData.videos.length - 1) {
-          setActiveVideoIndex(prev => prev + 1);
-        }
-      });
-      video.addEventListener('timeupdate', async (e) => {
-        const target = e.target as HTMLVideoElement;
-        if (!target.duration || !activeVideo || !courseId) return;
-
-        const playedRatio = target.currentTime / target.duration;
-
-        // 🚨 500 ERROR FIX: Instantly lock the state locally so we don't spam the server
-        if (playedRatio >= 0.9 && !completedVideos.includes(activeVideo.id) && !progressLockRef.current.has(activeVideo.id)) {
-          progressLockRef.current.add(activeVideo.id);
-          setCompletedVideos(prev => [...prev, activeVideo.id]);
-
-          try {
-            await api.markVideoProgress(courseId, activeVideo.id);
-          } catch (error) {
-            console.error("Backend 500 Error: Progress API failed, but UI will continue normally.", error);
-          }
-        }
-      });
-      // Prevent right click
-      video.addEventListener('contextmenu', (e) => e.preventDefault());
-
-      if (Hls.isSupported()) {
-        hls = new Hls({
-          debug: false,
-          xhrSetup: (xhr, url) => {
-            xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-          }
-        });
-
-        hls.loadSource(absoluteVideoUrl);
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (Hls.isSupported()) {
+          hls = new Hls({
+            debug: false,
+            xhrSetup: (xhr) => {
+              xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+            }
+          });
+          hls.loadSource(absoluteVideoUrl);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            player = new Plyr(video, defaultOptions);
+            player.play().catch(() => { });
+          });
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          // Safari native HLS
+          video.src = `${absoluteVideoUrl}?token=${token}`;
           player = new Plyr(video, defaultOptions);
-          player.play().catch(() => console.log("Autoplay blocked."));
-        });
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = `${absoluteVideoUrl}?token=${token}`;
+        }
+      } else {
+        // --- RAW MP4 / MOV BRANCH (signed URL) ---
+        video.src = absoluteVideoUrl;   // already contains signed access
         player = new Plyr(video, defaultOptions);
+        player.play().catch(() => { });
       }
     };
 
     initializePlayer();
 
+    // Cleanup
     return () => {
-      // 🚨 DOM CRASH FIX: Destroy everything cleanly on unmount
       if (hls) hls.destroy();
       if (player) player.destroy();
       if (playerContainerRef.current) playerContainerRef.current.innerHTML = '';
     };
-  }, [absoluteVideoUrl, activeVideo, activeVideoIndex, courseData, courseId]);
+  }, [absoluteVideoUrl, isHlsStream, activeVideo, activeVideoIndex, courseData, courseId]);
 
-  if (isLoading || authLoading) return <div className="flex min-h-screen items-center justify-center bg-[#060810]"><Loader2 className="h-12 w-12 animate-spin text-[#071A54]" /></div>;
+  // ---------------------------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------------------------
+  if (isLoading || authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#060810]">
+        <Loader2 className="h-12 w-12 animate-spin text-[#071A54]" />
+      </div>
+    );
+  }
   if (!courseData) return null;
 
   return (
     <div className="flex h-[100dvh] w-full flex-col bg-[#F8FAFC] overflow-hidden font-sans">
-
       <style dangerouslySetInnerHTML={{
         __html: `
         .plyr { width: 100%; height: 100%; --plyr-color-main: #071A54; }
@@ -202,11 +219,7 @@ export default function LearnPage() {
       <div className="flex flex-1 overflow-hidden relative bg-white">
         {/* MAIN CONTENT AREA */}
         <main className={`flex flex-col flex-1 overflow-y-auto bg-white transition-all duration-300 ease-in-out ${sidebarOpen ? 'md:mr-[380px]' : ''}`}>
-
-          {/* 🚨 RE-PROPORTIONED VIDEO CONTAINER */}
           <div className="relative bg-[#060810] w-full aspect-video max-h-[65vh] flex justify-center items-center">
-
-            {/* The Black Box Container for Plyr */}
             <div ref={playerContainerRef} className="w-full h-full absolute inset-0 z-10" />
 
             {isVideoBuffering && (
@@ -227,7 +240,6 @@ export default function LearnPage() {
             )}
           </div>
 
-          {/* 🚨 RE-PROPORTIONED TEXT SECTION */}
           <div className="flex-1 bg-white p-6 md:p-10 max-w-5xl mx-auto w-full">
             <div className="flex items-center gap-3 mb-3">
               <span className="inline-flex items-center justify-center bg-[#071A54]/10 text-[#071A54] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">
@@ -236,13 +248,9 @@ export default function LearnPage() {
               <span className="text-gray-300 text-sm font-medium">|</span>
               <span className="text-[#081E60] text-xs font-bold tracking-wide uppercase">{courseData.category}</span>
             </div>
-
-            {/* Smaller, more professional heading */}
             <h2 className="font-display text-xl md:text-3xl text-gray-900 mb-4 leading-tight font-bold">
               {activeVideo ? activeVideo.title : "Introduction"}
             </h2>
-
-            {/* Smaller, standardized text sizing */}
             <div className="prose prose-slate max-w-none text-gray-600">
               <p className="whitespace-pre-wrap leading-relaxed text-sm md:text-base">{activeVideo?.description}</p>
             </div>

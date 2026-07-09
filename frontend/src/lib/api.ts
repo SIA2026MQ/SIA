@@ -34,7 +34,7 @@ export const api = {
   // USER & AUTH
   // ---------------------------------------------------------------------------
   getMe: async () => api.fetch("/auth/me", { method: "GET" }),
-  getUserSubscription: async () => api.fetch("/auth/subscription", { method: "GET" }),
+  getUserSubscription: async () => api.fetch("/auth/membership", { method: "GET" }),
 
   // 🚨 NEW: Notifications
   getEventNotifications: async () => api.fetch(`/auth/notifications?_t=${Date.now()}`, { method: "GET" }),
@@ -153,4 +153,9 @@ export const api = {
   getPendingMigrations: async () => api.fetch("/admin/migrations/pending", { method: "GET" }),
   grantMigrationAccess: async (data: { userId: string; email: string }) =>
     api.fetch("/admin/migrations/grant", { method: "POST", body: JSON.stringify(data) }),
+
+  // ---------------------------------------------------------------------------
+  // PAYMENTS & COUPONS
+  // ---------------------------------------------------------------------------
+  getCurrency: async () => api.fetch("/payments/currency", { method: "GET" }),
 };

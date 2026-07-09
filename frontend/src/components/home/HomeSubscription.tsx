@@ -214,7 +214,7 @@ export function HomeSubscription() {
                       navigate('/satsungs#alacarte-passes');
                     } else {
                       // Just navigate to the top of the Satsung page
-                      navigate('/subscription');
+                      navigate('/membership');
                     }
                   }}
                   className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 ${

@@ -49,7 +49,7 @@ export default function App() {
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/satsungs-qna" element={<SatsungsQnAPage />} />
           <Route path="/about" element={<AboutPage />} />
-            <Route path="/join" element={<Joinpage />} />
+          <Route path="/join" element={<Joinpage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogDetailPage />} />
           <Route path="/contact" element={<ContactPage />} />
@@ -64,7 +64,7 @@ export default function App() {
           <Route path="/my-learning" element={<MyLearningPage />} />
           <Route path="/membership" element={<Subscripton />} />
           <Route path="/retreats" element={<RetreatsPage />} />
-            <Route path="/events" element={<Events />} />
+          <Route path="/events" element={<Events />} />
           <Route path="*" element={<NotFoundPage />} />
           <Route path="/learn/:courseId" element={<LearningPage />} />
         </Routes>

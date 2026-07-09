@@ -1,6 +1,7 @@
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
+
 import gallerySatsang from "@/assets/gallery-satsang.jpg";
 import lotusDawn from "@/assets/lotus-dawn.jpg";
 import retreatMountain from "@/assets/retreat-mountain.jpg";
@@ -21,15 +22,31 @@ export function GalleryStrip() {
       <div className="sia-container">
         <Swiper
           modules={[Autoplay]}
-          spaceBetween={16}
-          slidesPerView={1.2}
+          spaceBetween={10}
+          slidesPerView={2}
           speed={5000}
-          loop
-          autoplay={{ delay: 0, disableOnInteraction: false }}
+          loop={true}
+          autoplay={{
+            delay: 0,
+            disableOnInteraction: false,
+          }}
           breakpoints={{
-            640: { slidesPerView: 2.2 },
-            1024: { slidesPerView: 3.2 },
-            1280: { slidesPerView: 4.2 },
+            640: {
+              slidesPerView: 2,
+              spaceBetween: 12,
+            },
+            768: {
+              slidesPerView: 3,
+              spaceBetween: 16,
+            },
+            1024: {
+              slidesPerView: 3.2,
+              spaceBetween: 16,
+            },
+            1280: {
+              slidesPerView: 4.2,
+              spaceBetween: 16,
+            },
           }}
         >
           {slides.map((slide) => (

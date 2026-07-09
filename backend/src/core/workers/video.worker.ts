@@ -44,7 +44,7 @@ export const videoWorker = new Worker(
             '-profile:v main',       // Standard video profile for web playback
             '-preset fast',          // Fast encoding speed
             '-start_number 0',
-            '-hls_time 10',          // 🚨 10-second segments are industry standard for stable web streaming
+            '-hls_time 20',          // 🚨 20-second segments are industry standard for stable web streaming
             '-hls_list_size 0',      // Keep entire VOD playlist
             '-f hls'
           ])

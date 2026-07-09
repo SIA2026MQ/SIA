@@ -1,17 +1,51 @@
-import { useMemo } from "react";
-import { useCurrency } from "@/hooks/useCurrency";
-import { getLocalizedPrice, type PriceableItem } from "@/utils/pricing";
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
 export function useRegionalPricing() {
-  // Grab the globally detected currency (INR or USD) from our provider
-  const { currency } = useCurrency();
+  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
+  const [isCurrencyReady, setIsCurrencyReady] = useState(false);
 
-  return useMemo(
-    () => ({
-      currency,
-      // The new localizePrice expects an object with both priceINR and priceUSD
-      localizePrice: (item: PriceableItem) => getLocalizedPrice(item, currency),
-    }),
-    [currency],
-  );
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCurrency = async () => {
+      try {
+        const { currency: serverCurrency } = await api.getCurrency();
+        if (!cancelled) {
+          setCurrency(serverCurrency);
+          setIsCurrencyReady(true);
+        }
+      } catch (error) {
+        // Fallback to timezone if backend call fails
+        console.warn('Currency detection failed, using timezone fallback.');
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        setCurrency(timeZone === 'Asia/Calcutta' || timeZone === 'Asia/Kolkata' ? 'INR' : 'USD');
+        setIsCurrencyReady(true);
+      }
+    };
+
+    fetchCurrency();
+    return () => { cancelled = true; };
+  }, []);
+
+  const getPrice = (item: any): number => {
+    if (!item) return 0;
+    return currency === 'INR'
+      ? Number(item.priceInr || item.priceINR || 0)
+      : Number(item.priceUsd || item.priceUSD || 0);
+  };
+
+  const localizePrice = (item: any): string => {
+    const price = getPrice(item);
+    return currency === 'INR'
+      ? `₹${price.toLocaleString('en-IN')}`
+      : `$${price.toLocaleString('en-US')}`;
+  };
+
+  const formatAmount = (amount: number): string => {
+    return currency === 'INR'
+      ? `₹${amount.toLocaleString('en-IN')}`
+      : `$${amount.toLocaleString('en-US')}`;
+  };
+
+  return { currency, getPrice, localizePrice, formatAmount, isCurrencyReady };
 }

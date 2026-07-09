@@ -15,7 +15,8 @@ import {
   createOrder,
   verifyPayment,
   razorpayWebhook,
-  checkoutCartBypass
+  checkoutCartBypass,
+  getCurrency    
 } from './payment.controller';
 
 // 🚨 NEW: Import the Course Coupon controllers you created
@@ -34,6 +35,8 @@ router.post('/verify', authenticateJWT, verifyPayment);
 
 // Endpoint: POST /api/payments/checkout-cart
 router.post('/checkout-cart', authenticateJWT, checkoutCartBypass);
+
+router.get('/currency', getCurrency);
 
 // Endpoint: POST /api/payments/webhook (Bypasses JSON parsing in app.ts)
 router.post('/webhook', express.raw({ type: 'application/json' }), razorpayWebhook);

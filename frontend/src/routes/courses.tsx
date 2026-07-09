@@ -4,45 +4,42 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, X, PlayCircle, CheckCircle, Infinity, Smartphone } from "lucide-react";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useCart } from "@/components/common/CartContext";
-import { useRegionalPricing } from "@/hooks/useRegionalPricing";
 import { api } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext"; // Import Auth to check login status
+import { useAuth } from "@/context/AuthContext";
+import { useRegionalPricing } from "@/hooks/useRegionalPricing";
 
 export default function CoursesPage() {
   const [searchParams] = useSearchParams();
   const [dbCourses, setDbCourses] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
   const [purchasedIds, setPurchasedIds] = useState<Set<string>>(new Set());
-  
   const { dbUser } = useAuth();
   const activeCat = searchParams.get("cat") || "practices";
 
-  // 1. Fetch live catalog and user's purchased portfolio
   useEffect(() => {
     const fetchCatalogData = async () => {
       try {
-        // Fetch public catalog
         const res = await api.getAllCourses();
         const formatted = res.courses.map((c: any) => ({
           ...c,
+          // Map backend price fields so our hook can read them properly
           priceINR: c.priceInr,
           priceUSD: c.priceUsd,
           category: c.category || (c.title.toLowerCase().includes("scripture") ? "Scriptures" : "Practices"),
-          imageUrl: c.thumbnailUrl || null, // 🚨 Strictly uses R2 Thumbnail URL
+          imageUrl: c.thumbnailUrl || null,
           duration: c.duration || "Self-paced",
           lessons: c.videos?.length || 0,
           rating: c.rating || 5.0,
         }));
         setDbCourses(formatted);
 
-        // Fetch purchased IDs if logged in
         if (dbUser) {
           try {
             const enrolledRes = await api.getMyEnrolledCourses();
             const ids = new Set<string>(enrolledRes.courses.map((c: any) => c.id));
             setPurchasedIds(ids);
-          } catch (enrollErr) {
-            console.warn("User not enrolled in any courses or session invalid.");
+          } catch (err) {
+            console.warn("User not enrolled in any courses.");
           }
         }
       } catch (error) {
@@ -52,7 +49,6 @@ export default function CoursesPage() {
     fetchCatalogData();
   }, [dbUser]);
 
-  // 2. Filter content based on URL category
   const filteredCourses = useMemo(() => {
     const activeCatLower = (activeCat || "practices").toLowerCase();
     const dbCategoryFilter = activeCatLower === "scriptures" ? "Scriptures" : "Practices";
@@ -67,8 +63,8 @@ export default function CoursesPage() {
             {activeCat === "practices" ? "SIA Practices" : "Scriptures Wisdom"}
           </h1>
           <p className="mt-3 sia-body">
-            {activeCat === "practices" 
-              ? "Guided pathways in embodied practice and inner transformation." 
+            {activeCat === "practices"
+              ? "Guided pathways in embodied practice and inner transformation."
               : "Timeless scripture wisdom and contemplative deep dives."}
           </p>
         </div>
@@ -78,11 +74,11 @@ export default function CoursesPage() {
         <div className="sia-container grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           <AnimatePresence>
             {filteredCourses.map((course, index) => (
-              <CourseCard 
-                key={course.id} 
-                course={course} 
-                index={index} 
-                onClick={setSelected} 
+              <CourseCard
+                key={course.id}
+                course={course}
+                index={index}
+                onClick={setSelected}
                 isPurchased={purchasedIds.has(course.id)}
               />
             ))}
@@ -90,12 +86,11 @@ export default function CoursesPage() {
         </div>
       </section>
 
-      {/* Enterprise Sales Details Modal */}
       <AnimatePresence>
         {selected && (
-          <CourseDetailsModal 
-            selected={selected} 
-            onClose={() => setSelected(null)} 
+          <CourseDetailsModal
+            selected={selected}
+            onClose={() => setSelected(null)}
             isPurchased={purchasedIds.has(selected.id)}
           />
         )}
@@ -106,18 +101,23 @@ export default function CoursesPage() {
 
 // ----------------------------------------------------------------------
 
-function CourseCard({ course, index, onClick, isPurchased }: { course: any, index: number, onClick: (c: any) => void, isPurchased: boolean }) {
+function CourseCard({ course, index, onClick, isPurchased }: { course: any; index: number; onClick: (c: any) => void; isPurchased: boolean }) {
   const { addToCart } = useCart();
-  const { localizePrice } = useRegionalPricing();
   const navigate = useNavigate();
-  
+
+  // 🚨 Inject Regional Pricing Hook here
+  const { localizePrice } = useRegionalPricing();
+
+  // Calculates the price dynamically based on user's timezone
+  const priceDisplay = localizePrice(course);
+
   return (
-    <motion.article 
+    <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.3 }}
-      className="sia-card group cursor-pointer overflow-hidden p-0 flex flex-col h-full bg-white border border-gray-100 hover:shadow-xl transition-all" 
+      className="sia-card group cursor-pointer overflow-hidden p-0 flex flex-col h-full bg-white border border-gray-100 hover:shadow-xl transition-all"
       onClick={() => onClick(course)}
     >
       <div className="overflow-hidden aspect-video relative bg-gray-100">
@@ -133,7 +133,6 @@ function CourseCard({ course, index, onClick, isPurchased }: { course: any, inde
             <PlayCircle size={48} opacity={0.5} />
           </div>
         )}
-        
         {isPurchased && (
           <div className="absolute top-3 right-3 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1">
             <CheckCircle size={14} /> Owned
@@ -147,15 +146,15 @@ function CourseCard({ course, index, onClick, isPurchased }: { course: any, inde
             {course.category}
           </span>
         </div>
-        
+
         <h2 className="font-display text-[20px] leading-snug text-gray-900 line-clamp-2">{course.title}</h2>
         <p className="line-clamp-2 text-sm text-gray-500 flex-1">{course.description}</p>
-        
+
         <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-50">
           <span>{course.duration} · {course.lessons} lessons</span>
           <span className="font-bold text-yellow-500">★ {course.rating}</span>
         </div>
-        
+
         <div className="pt-2">
           {isPurchased ? (
             <button
@@ -166,7 +165,7 @@ function CourseCard({ course, index, onClick, isPurchased }: { course: any, inde
             </button>
           ) : (
             <div className="flex items-center justify-between">
-              <p className="font-display text-xl text-gray-900">{localizePrice(course)}</p>
+              <p className="font-display text-xl text-gray-900">{priceDisplay}</p>
               <button
                 className="bg-[#600694] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-[#4a0473] transition-colors flex items-center gap-2"
                 onClick={(e) => { e.stopPropagation(); addToCart(course); }}
@@ -183,44 +182,47 @@ function CourseCard({ course, index, onClick, isPurchased }: { course: any, inde
 
 // ----------------------------------------------------------------------
 
-function CourseDetailsModal({ selected, onClose, isPurchased }: { selected: any, onClose: () => void, isPurchased: boolean }) {
+function CourseDetailsModal({ selected, onClose, isPurchased }: { selected: any; onClose: () => void; isPurchased: boolean }) {
   const { addToCart } = useCart();
-  const { localizePrice } = useRegionalPricing();
   const navigate = useNavigate();
+
+  // 🚨 Inject Regional Pricing Hook here as well
+  const { localizePrice } = useRegionalPricing();
+
+  // Calculate price dynamically
+  const priceDisplay = localizePrice(selected);
 
   const handleAction = () => {
     if (isPurchased) {
       navigate(`/learn/${selected.id}`);
     } else {
       addToCart(selected);
-      onClose(); // Optionally close modal after adding to cart
+      onClose();
     }
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm p-4 md:p-10 flex items-center justify-center overflow-y-auto"
       onClick={onClose}
     >
-      <motion.div 
+      <motion.div
         initial={{ y: 50, scale: 0.95 }}
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 20, opacity: 0 }}
         className="relative mx-auto w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto"
-        onClick={(e) => e.stopPropagation()} // Prevent clicks inside from closing
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <button 
-          className="absolute top-4 right-4 z-10 bg-white/50 hover:bg-white text-gray-800 p-2 rounded-full backdrop-blur-md transition-colors" 
+        <button
+          className="absolute top-4 right-4 z-10 bg-white/50 hover:bg-white text-gray-800 p-2 rounded-full backdrop-blur-md transition-colors"
           onClick={onClose}
         >
           <X className="h-5 w-5" />
         </button>
 
-        {/* Left Side: Hero Image & Details */}
         <div className="flex-1 overflow-y-auto max-h-[85vh]">
           <div className="w-full aspect-video bg-gray-100 relative">
             {selected.imageUrl ? (
@@ -231,7 +233,6 @@ function CourseDetailsModal({ selected, onClose, isPurchased }: { selected: any,
               </div>
             )}
           </div>
-          
           <div className="p-8 md:p-10">
             <span className="text-xs font-bold tracking-widest uppercase text-[#600694]">
               {selected.category} Pathway
@@ -245,9 +246,7 @@ function CourseDetailsModal({ selected, onClose, isPurchased }: { selected: any,
           </div>
         </div>
 
-        {/* Right Side: Floating Action Card */}
         <div className="w-full md:w-[380px] bg-gray-50 border-l border-gray-200 p-8 flex flex-col justify-center">
-          
           {isPurchased ? (
             <div className="bg-emerald-100 border border-emerald-200 rounded-2xl p-6 text-center mb-6">
               <CheckCircle className="h-10 w-10 text-emerald-600 mx-auto mb-3" />
@@ -257,35 +256,33 @@ function CourseDetailsModal({ selected, onClose, isPurchased }: { selected: any,
           ) : (
             <div className="mb-8">
               <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Enrollment Fee</p>
-              <p className="font-display text-5xl text-gray-900">{localizePrice(selected)}</p>
+              <p className="font-display text-5xl text-gray-900">{priceDisplay}</p>
             </div>
           )}
 
           <button
             onClick={handleAction}
-            className={`w-full py-4 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2 ${
-              isPurchased 
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-                : 'bg-[#600694] hover:bg-[#4a0473] text-white shadow-purple-900/20'
-            }`}
+            className={`w-full py-4 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2 ${isPurchased
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+              : 'bg-[#600694] hover:bg-[#4a0473] text-white shadow-purple-900/20'
+              }`}
           >
             {isPurchased ? (
-              <>Continue Learning <PlayCircle size={20}/></>
+              <>Continue Learning <PlayCircle size={20} /></>
             ) : (
-              <>Add to Cart <ShoppingCart size={20}/></>
+              <>Add to Cart <ShoppingCart size={20} /></>
             )}
           </button>
 
           <div className="mt-8 space-y-4">
             <p className="text-sm font-bold text-gray-900">What's included:</p>
             <ul className="space-y-3 text-sm text-gray-600">
-              <li className="flex items-center gap-3"><PlayCircle size={18} className="text-[#600694]"/> {selected.lessons} On-Demand Sessions</li>
-              <li className="flex items-center gap-3"><Infinity size={18} className="text-[#600694]"/> Full Lifetime Access</li>
-              <li className="flex items-center gap-3"><Smartphone size={18} className="text-[#600694]"/> Access on mobile and desktop</li>
+              <li className="flex items-center gap-3"><PlayCircle size={18} className="text-[#600694]" /> {selected.lessons} On-Demand Sessions</li>
+              <li className="flex items-center gap-3"><Infinity size={18} className="text-[#600694]" /> Full Lifetime Access</li>
+              <li className="flex items-center gap-3"><Smartphone size={18} className="text-[#600694]" /> Access on mobile and desktop</li>
             </ul>
           </div>
         </div>
-
       </motion.div>
     </motion.div>
   );
