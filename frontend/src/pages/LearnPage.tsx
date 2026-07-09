@@ -5,7 +5,7 @@ import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 import {
   Loader2, ArrowLeft, PlayCircle, CheckCircle, Menu, X,
-  ShieldCheck, MonitorPlay
+  ShieldCheck, MonitorPlay, AlertCircle
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -23,9 +23,12 @@ export default function LearnPage() {
 
   const [isVideoBuffering, setIsVideoBuffering] = useState(false);
   const [completedVideos, setCompletedVideos] = useState<string[]>([]);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressLockRef = useRef<Set<string>>(new Set());
+  const playerRef = useRef<Plyr | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
   // ---------------------------------------------------------------------------
   // 1. DATA FETCHING
@@ -65,17 +68,20 @@ export default function LearnPage() {
   }, [courseId, dbUser, authLoading, navigate]);
 
   const activeVideo = courseData?.videos?.[activeVideoIndex];
-
   const absoluteVideoUrl = useMemo(() => {
     if (!activeVideo) return "";
+    // The backend returns a signed URL for raw videos; for HLS it returns the .m3u8 key.
     return activeVideo.videoUrlR2;
   }, [activeVideo]);
 
-  // Helper: determine if we need HLS
   const isHlsStream = useMemo(() => {
     if (!absoluteVideoUrl) return false;
-    // Assume everything that ends with .m3u8 is HLS, else raw
     return absoluteVideoUrl.endsWith('.m3u8');
+  }, [absoluteVideoUrl]);
+
+  // Reset error when changing video
+  useEffect(() => {
+    setPlaybackError(null);
   }, [absoluteVideoUrl]);
 
   // ---------------------------------------------------------------------------
@@ -85,25 +91,37 @@ export default function LearnPage() {
     if (!absoluteVideoUrl || !playerContainerRef.current) return;
     if (absoluteVideoUrl.includes('LOCKED')) return;
 
-    let hls: Hls | undefined;
-    let player: Plyr | undefined;
-
-    // Wipe previous video element
+    // Cleanup previous player
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+    if (playerRef.current) {
+      playerRef.current.destroy();
+      playerRef.current = null;
+    }
     playerContainerRef.current.innerHTML = '';
+
+    // Create video element
     const video = document.createElement('video');
     video.className = 'w-full h-full object-contain';
     video.crossOrigin = 'anonymous';
+    video.playsInline = true;
     playerContainerRef.current.appendChild(video);
 
-    // Event listeners shared by both modes
-    video.addEventListener('waiting', () => setIsVideoBuffering(true));
-    video.addEventListener('playing', () => setIsVideoBuffering(false));
-    video.addEventListener('ended', () => {
+    // Shared event listeners
+    const handleWaiting = () => setIsVideoBuffering(true);
+    const handlePlaying = () => setIsVideoBuffering(false);
+    const handleError = (e: Event) => {
+      console.error('Video playback error:', e);
+      setPlaybackError('Failed to load video. Please try again later.');
+    };
+    const handleEnded = () => {
       if (courseData && activeVideoIndex < courseData.videos.length - 1) {
         setActiveVideoIndex(prev => prev + 1);
       }
-    });
-    video.addEventListener('timeupdate', async (e) => {
+    };
+    const handleTimeUpdate = async (e: Event) => {
       const target = e.target as HTMLVideoElement;
       if (!target.duration || !activeVideo || !courseId) return;
       const playedRatio = target.currentTime / target.duration;
@@ -117,13 +135,20 @@ export default function LearnPage() {
           console.error("Progress API failed (non‑critical)", error);
         }
       }
-    });
-    video.addEventListener('contextmenu', (e) => e.preventDefault());
+    };
+    const handleContextMenu = (e: Event) => e.preventDefault();
+
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('playing', handlePlaying);
+    video.addEventListener('ended', handleEnded);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('contextmenu', handleContextMenu);
+    video.addEventListener('error', handleError);
 
     const defaultOptions: Plyr.Options = {
       controls: [
-        'play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume',
-        'settings', 'pip', 'airplay', 'fullscreen'
+        'play-large', 'play', 'progress', 'current-time', 'duration',
+        'mute', 'volume', 'settings', 'pip', 'airplay', 'fullscreen'
       ],
       settings: ['speed'],
       speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
@@ -133,44 +158,72 @@ export default function LearnPage() {
       ratio: '16:9'
     };
 
-    const initializePlayer = async () => {
-      if (isHlsStream) {
-        // --- HLS BRANCH ---
-        const token = auth.currentUser ? await auth.currentUser.getIdToken() : "";
-
-        if (Hls.isSupported()) {
-          hls = new Hls({
-            debug: false,
-            xhrSetup: (xhr) => {
-              xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-            }
-          });
-          hls.loadSource(absoluteVideoUrl);
-          hls.attachMedia(video);
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            player = new Plyr(video, defaultOptions);
-            player.play().catch(() => { });
-          });
-        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-          // Safari native HLS
-          video.src = `${absoluteVideoUrl}?token=${token}`;
-          player = new Plyr(video, defaultOptions);
+    const initPlayer = async () => {
+      try {
+        if (isHlsStream) {
+          // --- HLS (chunked) ---
+          const token = auth.currentUser ? await auth.currentUser.getIdToken() : "";
+          if (Hls.isSupported()) {
+            const hls = new Hls({
+              debug: false,
+              xhrSetup: (xhr) => {
+                xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+              }
+            });
+            hlsRef.current = hls;
+            hls.loadSource(absoluteVideoUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+              playerRef.current = new Plyr(video, defaultOptions);
+              playerRef.current.play().catch(() => {});
+            });
+          } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            // Safari native HLS
+            video.src = `${absoluteVideoUrl}?token=${token}`;
+            playerRef.current = new Plyr(video, defaultOptions);
+          } else {
+            setPlaybackError('HLS not supported in this browser.');
+          }
+        } else {
+          // --- RAW MP4 / MOV (signed URL) ---
+          // The backend already returns a signed URL, so we can use it directly.
+          video.src = absoluteVideoUrl;
+          // Optional: set type hint for better browser handling
+          const ext = absoluteVideoUrl.split('.').pop()?.toLowerCase();
+          if (ext === 'mp4') video.setAttribute('type', 'video/mp4');
+          else if (ext === 'mov') video.setAttribute('type', 'video/quicktime');
+          // Wait for the video to be ready
+          video.load();
+          playerRef.current = new Plyr(video, defaultOptions);
+          playerRef.current.play().catch(() => {});
         }
-      } else {
-        // --- RAW MP4 / MOV BRANCH (signed URL) ---
-        video.src = absoluteVideoUrl;   // already contains signed access
-        player = new Plyr(video, defaultOptions);
-        player.play().catch(() => { });
+      } catch (err) {
+        console.error('Player initialization error:', err);
+        setPlaybackError('Failed to initialize video player.');
       }
     };
 
-    initializePlayer();
+    initPlayer();
 
     // Cleanup
     return () => {
-      if (hls) hls.destroy();
-      if (player) player.destroy();
-      if (playerContainerRef.current) playerContainerRef.current.innerHTML = '';
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('contextmenu', handleContextMenu);
+      video.removeEventListener('error', handleError);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+      if (playerContainerRef.current) {
+        playerContainerRef.current.innerHTML = '';
+      }
     };
   }, [absoluteVideoUrl, isHlsStream, activeVideo, activeVideoIndex, courseData, courseId]);
 
@@ -225,6 +278,30 @@ export default function LearnPage() {
             {isVideoBuffering && (
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-none">
                 <Loader2 className="h-10 w-10 animate-spin text-white" />
+              </div>
+            )}
+
+            {playbackError && (
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 text-white p-4">
+                <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
+                <p className="text-lg font-semibold">Playback Error</p>
+                <p className="text-sm text-gray-300 mt-2">{playbackError}</p>
+                <button
+                  onClick={() => {
+                    setPlaybackError(null);
+                    // Trigger reload by resetting video source
+                    if (playerRef.current) {
+                      const video = playerRef.current.elements?.original;
+                      if (video) {
+                        video.load();
+                        playerRef.current.play();
+                      }
+                    }
+                  }}
+                  className="mt-4 px-6 py-2 bg-[#071A54] text-white rounded-full hover:bg-[#0a2a7a] transition-colors"
+                >
+                  Retry
+                </button>
               </div>
             )}
 

@@ -1,8 +1,8 @@
 import app from './app';
 import './core/services/db.service';
 import './core/services/queue.service';
-import { emailWorker } from './core/workers/email.worker';
-import { videoWorker } from './core/workers/video.worker'; // <-- CRITICAL: Wake up the video worker!
+//import { emailWorker } from './core/workers/email.worker';
+// import { videoWorker } from './core/workers/video.worker'; // <-- CRITICAL: Wake up the video worker!
 import { startCronJobs } from './core/services/cron.service';
 
 const PORT = process.env.PORT || 5000;
