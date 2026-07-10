@@ -78,25 +78,76 @@ export const addVideoToCourse = async (req: Request, res: Response): Promise<voi
 // -----------------------------------------------------------------------------
 // GET ALL PUBLISHED COURSES (paginated)
 // -----------------------------------------------------------------------------
-export const getAllCourses = async (req: Request, res: Response): Promise<void> => {
+export const getAllCourses = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const rawPage = Number(req.query.page);
+    const rawLimit = Number(req.query.limit);
+
+    const page =
+      Number.isInteger(rawPage) && rawPage > 0
+        ? rawPage
+        : 1;
+
+    const limit =
+      Number.isInteger(rawLimit) && rawLimit > 0
+        ? Math.min(rawLimit, 50)
+        : 10;
+
     const skip = (page - 1) * limit;
 
-    const [courses, total] = await Promise.all([
+    const where = {
+      isPublished: true,
+    };
+
+    const [courses, total] = await prisma.$transaction([
       prisma.course.findMany({
-        where: { isPublished: true },
-        skip, take: limit,
-        include: { videos: { orderBy: { orderIndex: 'asc' } } },
+        where,
+        skip,
+        take: limit,
+
+        include: {
+          videos: {
+            orderBy: {
+              orderIndex: "asc",
+            },
+          },
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
       }),
-      prisma.course.count({ where: { isPublished: true } })
+
+      prisma.course.count({
+        where,
+      }),
     ]);
 
-    res.status(200).json({ courses, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
-  } catch (error) { res.status(500).json({ error: 'Internal server error' }); }
-};
+    const totalPages = Math.ceil(total / limit);
 
+    res.status(200).json({
+      courses,
+
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    });
+  } catch (error) {
+    console.error("GET ALL COURSES ERROR:", error);
+
+    res.status(500).json({
+      error: "Internal server error",
+    });
+  }
+};
 // -----------------------------------------------------------------------------
 // GET COURSE BY ID – returns signed URLs for authorised users
 // -----------------------------------------------------------------------------

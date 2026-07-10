@@ -112,7 +112,7 @@ export function ObjLink() {
         <div className="relative w-full max-w-md lg:max-w-lg overflow-hidden rounded-2xl border-2 border-white shadow-xl aspect-square-[4/3]">
           {/* Replace the src with your actual image import or URL */}
           <img 
-            src={what_we_do} 
+            src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/WhatWeDo.jpeg"
             alt="What We Do" 
             className="w-full h-full object-cover transition-transform duration-700 "
           />
@@ -166,15 +166,15 @@ export function ObjLink() {
               <span className="block text-xs font-bold uppercase tracking-[0.2em] text-[#7D2E61] mb-4">
                 {video.tag}
               </span>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-display text-[#600694] tracking-tight mb-8">
+              <h2 className="text-3xl md:text-4xl lg:text-4xl font-display text-[#600694] tracking-tight mb-8">
                 {video.title}
               </h2>
               <div className="w-16 h-1 bg-[#7D2E61] mb-8 rounded-full" />
               
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-light mb-6">
+              <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-light mb-6">
                 {video.desc1}
               </p>
-              <p className="text-lg text-muted-foreground leading-relaxed font-light">
+              <p className="text-xl text-muted-foreground leading-relaxed font-light">
                 {video.desc2}
               </p>
             </motion.div>
@@ -233,7 +233,7 @@ export function ObjLink() {
             <div className="flex-shrink-0 mt-0.5">
               <CheckCircle2 className="w-5 h-5 text-[#7D2E61]" />
             </div>
-            <p className="text-base font-medium leading-relaxed text-[#600694]/90">
+            <p className="text-xl font-medium leading-relaxed text-[#600694]/90">
               {objective}
             </p>
           </motion.div>
@@ -250,7 +250,7 @@ export function ObjLink() {
       >
         {/* Replace the src with your actual image variable/path */}
         <img 
-          src={standing_J} 
+          src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/standing_J.webp" 
           alt="Objectives of Awareness" 
           className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
         />

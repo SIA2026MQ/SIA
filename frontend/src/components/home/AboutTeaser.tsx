@@ -21,7 +21,7 @@ export function AboutTeaser() {
         >
           <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-3xl border border-gold/60 bg-card p-3 lg:max-w-none">
             <img
-              src={jakePortrait}
+              src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/jP.jpg"
               alt="Jake Light in contemplative pose"
               className="aspect-[4/5] w-full rounded-2xl object-cover"
               width={1024}
@@ -51,7 +51,7 @@ export function AboutTeaser() {
           <h2 className="sia-h2">Meet Jake Light</h2>
 
           {/* Biography */}
-          <p className="sia-body text-base leading-relaxed sm:text-lg">
+          <p className="sia-body text-base  sm:text-xl">
             Jake Light had an exciting journey traversing the landscapes of
             spirituality through all religions, ultimately discovering that
             everything comes from the same One Source. He discovered at a young

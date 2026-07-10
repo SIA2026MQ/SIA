@@ -43,7 +43,8 @@ export const api = {
   // ---------------------------------------------------------------------------
   // COURSES
   // ---------------------------------------------------------------------------
-  getAllCourses: async () => api.fetch("/courses", { method: "GET" }),
+  getAllCourses: async (page: number = 1, limit: number = 10) =>
+    api.fetch(`/courses?page=${page}&limit=${limit}`, { method: "GET" }),
   getCourseById: async (courseId: string) => api.fetch(`/courses/${courseId}`, { method: "GET" }),
   createCourse: async (data: any) => api.fetch("/courses", { method: "POST", body: JSON.stringify(data) }),
   updateCourse: async (courseId: string, data: any) => api.fetch(`/courses/${courseId}`, { method: "PATCH", body: JSON.stringify(data) }),
@@ -124,7 +125,7 @@ export const api = {
   createRetreat: async (data: any) => api.fetch("/retreats", { method: "POST", body: JSON.stringify(data) }),
   updateRetreat: async (id: string, data: any) => api.fetch(`/retreats/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteRetreat: async (id: string) => api.fetch(`/retreats/${id}`, { method: "DELETE" }),
-  applyForRetreat: async (data: { retreatId: string; name: string; email: string; phone: string }) => api.fetch("/retreats/apply", { method: "POST", body: JSON.stringify(data) }),
+ applyForRetreat: async (data: any) => api.fetch("/retreats/apply", { method: "POST", body: JSON.stringify(data) }),
   getAllApplications: async () => api.fetch("/retreats/applications", { method: "GET" }),
   getMyRetreatApplications: async () => api.fetch("/retreats/my-applications", { method: "GET" }),
   updateApplicationStatus: async (applicationId: string, status: "APPROVED" | "REJECTED") => api.fetch(`/retreats/applications/${applicationId}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),

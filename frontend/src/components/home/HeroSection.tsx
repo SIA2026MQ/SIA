@@ -5,8 +5,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, Play } from "lucide-react";
 
-// Validated asset imports from your directory structure
-import heroSanctuary from "@/assets/hero-video3.mp4";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -52,7 +50,7 @@ export function HeroSection() {
       {/* ========================================================================= */}
       <div className="absolute inset-0 z-0 bg-[#1a0b2e]">
         <video
-          src={heroSanctuary} 
+          src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/hero-video3_gwr_video_mvp.mp4"
           className="h-full w-full object-cover opacity-90" 
           autoPlay
           muted

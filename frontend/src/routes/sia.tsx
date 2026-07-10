@@ -9,11 +9,9 @@ import {
 // Modern component imports from your system
 import { LotusDivider } from "@/components/common/LotusDivider";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
-import j1 from "@/assets/j1.jpeg";
-import j2 from "@/assets/j2.jpeg";
 
 // Asset Validations
-import jakePortrait from "@/assets/jake.png";
+
 
 export default function SIAPage() {
   const [searchParams] = useSearchParams();
@@ -116,7 +114,7 @@ export default function SIAPage() {
         <div className="lg:col-span-5 space-y-6 max-w-md mx-auto lg:max-w-none w-full">
           <div className="overflow-hidden rounded-3xl border border-gold/60 p-2 bg-white shadow-soft">
             <img
-              src={jakePortrait}
+              src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/jP.jpg"
               alt="Jake Light"
               className="aspect-[4/5] w-full object-cover rounded-2xl"
               width={1024}
@@ -140,19 +138,19 @@ export default function SIAPage() {
             "It all began with exploration of the inner self!"
           </p>
           
-          <p>
+          <p className="sia-body text-muted-foreground text-xl">
             Jake Light is an Inner Journey Coach, helping seekers in their inward journey, helping them navigate through life without forgetting their main goal of life. He has been a wanderer, having travelled extensively to multiple remote locations in India, including forests, mountains, caves, Siddha locations and spent decades meditating at Jeeva Samadhis, meeting innumerable saints, mystics and enlightened masters throughout his life.
           </p>
           
-          <p>
+          <p className="sia-body text-muted-foreground text-xl">
             Firmly surrendered to the natural flow of life, he follows the pathless path – the middle path – and teaches others through his own life experiences. He has a deep insight into all the deep scriptures of every religion and professes the same through practical examples. He believes in living a simple life of meaningful existence, deeply emphasizing always that spirituality is very simple but we complicate it.
           </p>
           
-          <div className="p-5 rounded-2xl bg-primary/5 border-l-4 border-primary text-primary font-medium italic my-6 text-base shadow-sm">
+          <div className="p-5 rounded-2xl bg-primary/5 border-l-4 border-primary text-primary font-medium italic my-6 shadow-sm text-xl">
             "He has a no-nonsense approach towards inner evolution, without clinging to the endless philosophies, methodologies and props of religion, cults, traditions and spirituality."
           </div>
 
-          <p>
+          <p className="sia-body text-muted-foreground text-xl">
             His presence is elevating – be it in online events, personal sessions or physical retreats. One can easily shift into deep awareness in his presence, practices and teachings. His prime focus is to help everyone turn within and realize that there is nothing really to do or run behind, for their true liberated nature itself is pure and free.
           </p>
         </div>
@@ -164,13 +162,13 @@ export default function SIAPage() {
           Know More About Jake
         </h3>
         
-        <p>
+        <p className="sia-body text-muted-foreground text-xl">
           Jake was born in a Roman Catholic family and since childhood loved Christ but could not relate with any Orthodox things. Always aloof and in his own world, something always told him that there is a larger existence and meaning to life. This whole life was a search and exploration of the same.
         </p>
-        <p>
+        <p className="sia-body text-muted-foreground text-xl">
           Music and poetry naturally flowed out of him, and his passions were filled with life and creativity. Sufferings were immense in every stage of life, which once, in adulthood went to the extreme of devastating him to the point where alcohol and cigarettes badly gripped him. Through those moments of despair, some grace shined upon him when accidentally a book fell into his hands that led him to set out for exploring and finding his own truth.
         </p>
-        <p>
+        <p className="sia-body text-muted-foreground text-xl">
           He found himself being led to the Mahasamadhi of a great Mystic named Nityananda, in Ganeshpuri, after which his whole life and perspective changed 180 degrees. From there (2008) till now, ‘That One’ led him to many places, mystics and Masters. 
         </p>
 
@@ -180,7 +178,7 @@ export default function SIAPage() {
           <div className="group w-full aspect-square overflow-hidden rounded-2xl sm:rounded-3xl border border-[#600694]/10 shadow-lg">
             {/* Replace `image1` with your actual imported image variable */}
             <img
-              src={j1}
+              src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/j1.jpeg"
               alt="Jake's Journey 1"
               className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             />
@@ -188,7 +186,7 @@ export default function SIAPage() {
           <div className="group w-full aspect-square overflow-hidden rounded-2xl sm:rounded-3xl border border-[#600694]/10 shadow-lg">
             {/* Replace `image2` with your actual imported image variable */}
             <img
-              src={j2}
+              src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/j2.jpeg"
               alt="Jake's Journey 2"
               className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             />
@@ -196,16 +194,16 @@ export default function SIAPage() {
         </div>
         {/* ------------------------------------- */}
 
-        <p>
+        <p className="sia-body text-muted-foreground text-xl">
           One of his closest Masters was Shri. Avadhoot Shivanand, from whom he received initiation into the path of Kundalini and the nondualist practices of Sri Vidya. But above all these practices what he cherished the most always, and even now, is the love and grace of his Master. He had the blessing of living with and serving his master for close to 7 years. At that time, he was quite popularly known as Jacob Shivanand, as he associated his second name to the identity-less name of his Guru. Later, in order to dissolve another identity created with the name, he dissolved these identities by preferring to use the name ‘Jake Light’ (Jake being the short-form of Jacob and Light symbolizing the child of Light).
         </p>
-        <p>
+        <p className="sia-body text-muted-foreground text-xl">
           He prefers walking the path alone without any identities and hence prefers not to use anything that identifies with anyone or anything. The love and grace of his Master has been profound, due to which he was able to spread the divine love and light to those who eagerly sought for it.
         </p>
-        <p>
+        <p className="sia-body text-muted-foreground text-xl">
           He was also blessed to have physical presence and blessings of 11 Avadhuts in his lifetime. This whole life revolved only around the great mystics and their hardcore practical teachings. At a certain point in time, deep wisdom began flowing out of him which eventually he realized were all coming from the truths encoded in the scriptures across all religions. He had multiple enlightening awakenings in Arunachala, Tiruvannamalai after which he spontaneously began sharing the wisdom with those seekers who longed for nothing other than the truth.
         </p>
-        <p>
+        <p className="sia-body text-muted-foreground text-xl">
           He is grounded to his living experience as a human and likes to live life very practically without adorning any garb or titles in spirituality. He uses this website as the platform to reach out to those who are seeking illumination, ultimate peace and freedom from the pangs of birth & death cycle.
         </p>
       </div>

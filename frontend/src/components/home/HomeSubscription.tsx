@@ -141,9 +141,9 @@ export function HomeSubscription() {
         {/* =========================================
             HEADER (Perfectly Aligned)
         ========================================= */}
-        <div className="flex flex-col items-center text-center max-w-2xl mx-auto mb-12 gap-3">
+        <div className="flex flex-col items-center text-center max-w-7xl mx-auto mb-12 gap-3">
            <h2 className="sia-h2 text-3xl md:text-4xl">Start Your Journey</h2>
-          <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[#fdb022]">
+          <p className="text-[10px] sm:text-xl font-bold uppercase tracking-widest text-[#fdb022]">
             Join our daily live Satsangs or get an exclusive pass to our weekend webinars. Choose the plan that fits your path.
           </p>
         </div>
@@ -192,15 +192,15 @@ export function HomeSubscription() {
                     <>
                       <div className="flex items-start gap-2.5">
                         <CalendarDays className="h-4 w-4 text-[#600694] shrink-0 mt-0.5" />
-                        <span className="text-gray-600 leading-tight">Access to <strong>Daily Live Sessions</strong></span>
+                        <span className="text-gray-600 leading-tight text-[15px]">Access to <strong>Daily Live Sessions</strong></span>
                       </div>
                       <div className="flex items-start gap-2.5">
                         <Video className="h-4 w-4 text-[#600694] shrink-0 mt-0.5" />
-                        <span className="text-gray-600 leading-tight"><strong>{plan.webinarCredits} Free Webinar Credit{plan.webinarCredits > 1 ? 's' : ''}</strong> per month</span>
+                        <span className="text-gray-600 leading-tight text-[15px]"><strong>{plan.webinarCredits} Free Webinar Credit{plan.webinarCredits > 1 ? 's' : ''}</strong> per month</span>
                       </div>
                       <div className="flex items-start gap-2.5">
                         <ShieldCheck className="h-4 w-4 text-[#600694] shrink-0 mt-0.5" />
-                        <span className="text-gray-600 leading-tight">Automated email reminders</span>
+                        <span className="text-gray-600 leading-tight text-[15px]">Automated email reminders</span>
                       </div>
                     </>
                   )}
@@ -217,7 +217,7 @@ export function HomeSubscription() {
                       navigate('/membership');
                     }
                   }}
-                  className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 ${
+                  className={`w-full py-2.5 rounded-xl font-bold text-slg transition-colors flex items-center justify-center gap-2 ${
                     isPremium ? 'bg-[#600694] text-white hover:bg-[#4a0473]' : 
                     isPass ? 'bg-white border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white' : 
                     'bg-gray-900 text-white hover:bg-gray-800'

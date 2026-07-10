@@ -106,13 +106,13 @@ export function Stages() {
               
               {/* Subtitle (Grey Box) */}
               <div className="w-full bg-[#f4f4f4] text-center py-1.5 mt-4 mb-5 transition-colors group-hover:bg-[#f0e8f2]">
-                <span className="text-xs uppercase tracking-widest text-muted-foreground font-medium group-hover:text-[#4B1D52] transition-colors">
+                <span className="text-xl uppercase tracking-widest text-muted-foreground font-medium group-hover:text-[#4B1D52] transition-colors">
                   {s.subtitle}
                 </span>
               </div>
               
               {/* Description */}
-              <p className="text-center text-[15px] text-muted-foreground leading-relaxed px-2 flex-grow">
+              <p className="text-center text-[19px] text-muted-foreground leading-relaxed px-2 flex-grow">
                 {s.desc}
               </p>
               

@@ -20,17 +20,40 @@ export default function CoursesPage() {
   useEffect(() => {
     const fetchCatalogData = async () => {
       try {
-        const res = await api.getAllCourses();
-        const formatted = res.courses.map((c: any) => ({
+        // Fetch every page so the customer catalog is never limited to 10 courses.
+        // The backend caps each request at 50, so we fetch page 1 first,
+        // then load any remaining pages in parallel.
+        const firstPage = await api.getAllCourses(1, 50);
+        const allCourses = [...(firstPage.courses || [])];
+        const totalPages = Math.max(firstPage.meta?.totalPages || 1, 1);
+
+        if (totalPages > 1) {
+          const remainingPages = await Promise.all(
+            Array.from({ length: totalPages - 1 }, (_, index) =>
+              api.getAllCourses(index + 2, 50)
+            )
+          );
+
+          remainingPages.forEach((pageResponse) => {
+            allCourses.push(...(pageResponse.courses || []));
+          });
+        }
+
+        const formatted = allCourses.map((c: any) => ({
           ...c,
           priceINR: c.priceInr,
           priceUSD: c.priceUsd,
-          category: c.category || (c.title.toLowerCase().includes("scripture") ? "Scriptures" : "Practices"),
+          category:
+            c.category ||
+            (c.title.toLowerCase().includes("scripture")
+              ? "Scriptures"
+              : "Practices"),
           imageUrl: c.thumbnailUrl || null,
           duration: c.duration || "Self-paced",
           lessons: c.videos?.length || 0,
           rating: c.rating || 5.0,
         }));
+
         setDbCourses(formatted);
 
         if (dbUser) {
@@ -52,8 +75,13 @@ export default function CoursesPage() {
   const filteredCourses = useMemo(() => {
     if (activeCat === "all") return dbCourses;
 
-    const dbCategoryFilter = activeCat === "scriptures" ? "Scriptures" : "Practices";
-    return dbCourses.filter((c) => c.category === dbCategoryFilter);
+    const dbCategoryFilter =
+      activeCat === "scriptures" ? "scriptures" : "practices";
+
+    return dbCourses.filter(
+      (course) =>
+        String(course.category || "").trim().toLowerCase() === dbCategoryFilter
+    );
   }, [dbCourses, activeCat]);
 
   return (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, Users, Calendar, Trash2, UploadCloud, Pencil, AlertTriangle, Loader2 } from "lucide-react";
+import { Check, X, Users, Calendar, Trash2, UploadCloud, Pencil, AlertTriangle, Loader2, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 
@@ -23,9 +23,12 @@ export function RetreatsTab() {
   const [applications, setApplications] = useState<any[]>([]);
   const [retreats, setRetreats] = useState<any[]>([]);
 
-  // 🚨 NEW: Modal States for Deletion
+  // Modal States
   const [retreatToDelete, setRetreatToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // State for viewing full application details
+  const [viewingApplication, setViewingApplication] = useState<any | null>(null);
 
   const loadData = async () => {
     try {
@@ -107,12 +110,10 @@ export function RetreatsTab() {
     }
   };
 
-  // 🚨 NEW: Trigger the modal instead of window.confirm
   const openDeleteModal = (retreat: any) => {
     setRetreatToDelete(retreat);
   };
 
-  // 🚨 NEW: Execute the deletion from the modal
   const handleConfirmDelete = async () => {
     if (!retreatToDelete) return;
     setIsDeleting(true);
@@ -121,7 +122,7 @@ export function RetreatsTab() {
       await api.deleteRetreat(retreatToDelete.id);
       alert("Retreat and all related applications deleted successfully.");
       loadData(); 
-      setRetreatToDelete(null); // Close modal
+      setRetreatToDelete(null);
     } catch (error: any) {
       alert("Failed to delete retreat.");
     } finally {
@@ -137,6 +138,11 @@ export function RetreatsTab() {
       await api.updateApplicationStatus(id, status);
       alert(`User ${status} successfully!`);
       loadData();
+      
+      // Update viewing modal state if it's currently open
+      if (viewingApplication && viewingApplication.id === id) {
+        setViewingApplication({ ...viewingApplication, status });
+      }
     } catch (error: any) {
       alert("Failed to update status.");
     }
@@ -213,7 +219,6 @@ export function RetreatsTab() {
                     <button onClick={() => handleEditClick(retreat)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100" title="Edit Retreat">
                       <Pencil className="h-5 w-5" />
                     </button>
-                    {/* 🚨 Updated to use the sleek delete modal */}
                     <button onClick={() => openDeleteModal(retreat)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100" title="Delete Retreat">
                       <Trash2 className="h-5 w-5" />
                     </button>
@@ -262,6 +267,8 @@ export function RetreatsTab() {
                       </span>
                     </td>
                     <td className="p-4 flex gap-2">
+                      <button onClick={() => setViewingApplication(app)} className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors" title="View Full Details"><Eye className="h-5 w-5"/></button>
+                      
                       {app.status === 'PENDING' && (
                         <>
                           <button onClick={() => handleStatusUpdate(app.id, 'APPROVED')} className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors" title="Approve"><Check className="h-5 w-5"/></button>
@@ -277,6 +284,98 @@ export function RetreatsTab() {
           </div>
         </div>
       )}
+
+      {/* ========================================= */}
+      {/* 🚨 FULL APPLICATION DETAILS MODAL           */}
+      {/* ========================================= */}
+      <AnimatePresence>
+        {viewingApplication && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"
+            >
+              <button onClick={() => setViewingApplication(null)} className="absolute top-4 right-4 p-2 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+              
+              <h2 className="text-2xl font-bold text-[#600694] mb-1 border-b border-gray-100 pb-4">Application Details</h2>
+              
+              <div className="grid grid-cols-2 gap-4 mt-6">
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Retreat</p>
+                  <p className="font-semibold text-gray-900">{viewingApplication.retreat?.title}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Status</p>
+                  <p className="font-semibold text-gray-900">{viewingApplication.status}</p>
+                </div>
+                
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-4">Applicant Name</p>
+                  <p className="font-semibold text-gray-900">{viewingApplication.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-4">Age</p>
+                  <p className="font-semibold text-gray-900">{viewingApplication.age || "N/A"}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-4">Email</p>
+                  <p className="font-semibold text-gray-900">{viewingApplication.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-4">WhatsApp</p>
+                  <p className="font-semibold text-gray-900">{viewingApplication.phone || "N/A"}</p>
+                </div>
+
+                <div className="col-span-2">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-4">Full Address</p>
+                  <p className="font-semibold text-gray-900">
+                    {viewingApplication.address 
+                      ? `${viewingApplication.address}, ${viewingApplication.city}, ${viewingApplication.state} - ${viewingApplication.zip}, ${viewingApplication.country}`
+                      : "N/A"}
+                  </p>
+                </div>
+
+                <div className="col-span-2">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-4">SiA Member?</p>
+                  <p className="font-semibold text-gray-900">{viewingApplication.isMember || "N/A"}</p>
+                </div>
+
+                <div className="col-span-2 bg-gray-50 p-4 rounded-xl mt-2 border border-gray-100">
+                  <p className="text-xs font-bold text-[#600694] uppercase tracking-wider mb-1">Current Spiritual Practice</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewingApplication.spiritualPractice || "None provided"}</p>
+                </div>
+
+                <div className="col-span-2 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <p className="text-xs font-bold text-[#600694] uppercase tracking-wider mb-1">Familiarity with SiA</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewingApplication.familiarity || "None provided"}</p>
+                </div>
+
+                <div className="col-span-2 text-right mt-2 border-t border-gray-100 pt-2">
+                  <p className="text-xs text-gray-400">
+                    Submitted on: {new Date(viewingApplication.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {viewingApplication.status === 'PENDING' && (
+                <div className="flex gap-4 mt-6 pt-6 border-t border-gray-100">
+                  <button onClick={() => handleStatusUpdate(viewingApplication.id, 'APPROVED')} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors">
+                    Approve Application
+                  </button>
+                  <button onClick={() => handleStatusUpdate(viewingApplication.id, 'REJECTED')} className="flex-1 py-3 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200 transition-colors">
+                    Reject
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ========================================= */}
       {/* 🚨 RETREAT DELETE CONFIRMATION MODAL        */}

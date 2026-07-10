@@ -1,11 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { AnimatedPage } from "@/components/common/AnimatedPage"; // Assuming wrapper
-import act_web from "@/assets/act_web.jpeg"; // Example image
-import act_satsang from "@/assets/act_sut.jpeg"; // Example image
-import act_course from "@/assets/act_cor.jpeg"; // Example image
-import act_retreat from "@/assets/act_ret.jpeg"; // Example image
-import act_gathering from "@/assets/act_gat.jpeg"; // Example image
+
 
 // Premium custom easing curve for a buttery smooth feel
 const smoothEase = [0.16, 1, 0.3, 1];
@@ -47,7 +43,7 @@ const activitiesData = [
     description: "Two webinars are conducted every month that share the practices, secrets and training on this path.",
     buttonText: "Check for Events",
     buttonLink: "#events",
-    imageSrc: act_web,
+    imageSrc: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/act_web.jpeg",
     imageAlt: "SiA Webinars",
   },
   {
@@ -56,7 +52,7 @@ const activitiesData = [
     description: "Regular satsangs are conducted every daily to enhance the wisdom and to bring clarity on the webinars and also a place for all members to interact directly with Jake Light.",
     buttonText: "Join The Satsangs",
     buttonLink: "#satsangs",
-    imageSrc: act_satsang,
+    imageSrc: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/act_sut.jpeg",
     imageAlt: "SiA Satsangs",
   },
   {
@@ -65,7 +61,7 @@ const activitiesData = [
     description: "Courses are important webinars that become available into member's account for unlimited viewing for an unlimited period of time.",
     buttonText: "See all Courses",
     buttonLink: "#courses",
-    imageSrc: act_course,
+    imageSrc: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/act_cor.jpeg",
     imageAlt: "SiA Courses",
   },
   {
@@ -74,7 +70,7 @@ const activitiesData = [
     description: "Regular Residential Retreats are conducted in holy places like Tiruvannamalai, Ganeshpuri & Kanhangad.",
     buttonText: "Upcoming Retreats",
     buttonLink: "#retreats",
-    imageSrc: act_retreat,
+    imageSrc: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/act_ret.jpeg",
     imageAlt: "SiA Retreats",
   },
   {
@@ -83,7 +79,7 @@ const activitiesData = [
     description: "Satsangs in-person are conducted on invitation to bring the community together in shared physical presence.",
     buttonText: "Invite for Satsang",
     buttonLink: "#invite",
-    imageSrc: act_gathering,
+    imageSrc: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/act_gat.jpeg",
     imageAlt: "SiA In-person Satsangs",
   },
 ];
@@ -106,7 +102,7 @@ export default function Activity() {
               What We Offer
             </motion.h3>
             <motion.h2 variants={textReveal} className="sia-h1 text-[#600694] mb-8">
-              Activities of the Sangha
+              Activities of the SIA Family
             </motion.h2>
 
             {/* Premium Glassmorphism Blockquote */}
@@ -172,7 +168,7 @@ export default function Activity() {
                         {activity.title}
                       </h3>
                       
-                      <p className="sia-body text-lg text-muted-foreground leading-relaxed">
+                      <p className="sia-body text-xl text-muted-foreground leading-relaxed">
                         {activity.description}
                       </p>
 
@@ -181,7 +177,7 @@ export default function Activity() {
                           href={activity.buttonLink}
                           className="group relative inline-flex items-center justify-center gap-3 overflow-hidden rounded-full bg-purple-600 border border-white/10 px-8 py-3.5 font-semibold text-white transition-all hover:bg-white/[0.1] hover:border-primary/50 hover:shadow-[0_0_30px_rgba(77,145,255,0.15)] active:scale-95"
                         >
-                          <span className="relative z-10 tracking-wide text-sm">{activity.buttonText}</span>
+                          <span className="relative z-10 tracking-wide text-lg">{activity.buttonText}</span>
                           <ArrowRight size={16} className="relative z-10 text-primary transition-transform group-hover:translate-x-1" />
                         </a>
                       </div>

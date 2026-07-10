@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
-import contactImage from "@/assets/contact.jpeg"; // Example image
-import aratai from "@/assets/We-are-now-on-Arratai-1.gif"
+
 
 // Animation variants
 const staggerContainer = {
@@ -88,7 +87,7 @@ export function ContactPage() {
               className="group aspect-[4/5] md:aspect-square w-full overflow-hidden rounded-3xl border border-[#4B1D52]/10 shadow-lg bg-white"
             >
               <img
-                src={contactImage}
+                src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/contact.jpeg"
                 alt="Meditation space"
                 className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
               />
@@ -102,7 +101,7 @@ export function ContactPage() {
               className="group aspect-[4/5] md:aspect-square w-full overflow-hidden rounded-3xl border border-[#4B1D52]/10 shadow-lg bg-white"
             >
               <img
-                src={aratai}
+                src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/We-are-now-on-Arratai-1.gif"
                 alt="Spiritual path"
                 className="h-full w-full object-contain transition-transform duration-700 ease-out group-hover:scale-105"
               />

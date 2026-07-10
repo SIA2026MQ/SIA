@@ -40,18 +40,27 @@ export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
   const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [deletedVideoIds, setDeletedVideoIds] = useState<string[]>([]);
 
-  const fetchCourses = async () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
+  const COURSES_PER_PAGE = 10;
+
+  const fetchCourses = async (page: number) => {
     try {
-      const res = await api.getAllCourses();
-      setCourses(res.courses);
+      const res = await api.getAllCourses(page, COURSES_PER_PAGE);
+
+      setCourses(res.courses || []);
+      setCurrentPage(res.meta?.page || page);
+      setTotalPages(Math.max(res.meta?.totalPages || 1, 1));
+      setTotalCourses(res.meta?.total || 0);
     } catch (error) {
       console.error("Failed to load courses from DB", error);
     }
   };
 
   useEffect(() => {
-    fetchCourses();
-  }, []);
+    fetchCourses(currentPage);
+  }, [currentPage]);
 
   const addLesson = () => setForm(prev => ({ ...prev, lessonItems: [...prev.lessonItems, { title: "", videoDataUrl: "", videoName: "" }] }));
 
@@ -72,12 +81,12 @@ export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
     setForm(DEFAULT_FORM);
     setImagePreview(null);
     setUploadProgress({});
-    setDeletedVideoIds([]); 
+    setDeletedVideoIds([]);
   };
 
   const editCourse = (course: any) => {
     setEditingId(course.id);
-    setDeletedVideoIds([]); 
+    setDeletedVideoIds([]);
 
     const mappedLessons = course.videos && course.videos.length > 0
       ? course.videos.map((vid: any) => ({ id: vid.id, title: vid.title, videoDataUrl: vid.videoUrlR2, videoName: "Existing Video" }))
@@ -99,12 +108,21 @@ export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
 
   const deleteCourse = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this course?")) return;
+
     try {
       await api.deleteCourse(id);
-      await fetchCourses();
+
+      const remainingOnPage = courses.length - 1;
+      if (remainingOnPage === 0 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      } else {
+        await fetchCourses(currentPage);
+      }
+
       if (editingId === id) resetEditor();
     } catch (error) {
       console.error("Failed to delete course", error);
+      alert("Failed to delete course.");
     }
   };
 
@@ -163,14 +181,23 @@ export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
         await api.updateCourse(editingId, coursePayload);
       }
 
-      // 4. Process Videos with Real-Time XHR Progress Tracking
+      // 4. Delete videos removed while editing
+      if (currentCourseId && deletedVideoIds.length > 0) {
+        await Promise.all(
+          deletedVideoIds.map(videoId =>
+            api.deleteCourseVideo(currentCourseId as string, videoId)
+          )
+        );
+      }
+
+      // 5. Process new videos with Real-Time XHR Progress Tracking
       if (currentCourseId) {
         for (let i = 0; i < form.lessonItems.length; i++) {
           const lesson = form.lessonItems[i];
 
           // Only upload if it's a completely NEW file
           if (lesson.title && lesson.rawFile) {
-            
+
             // Initialize progress to 0% for this specific video
             setUploadProgress(prev => ({ ...prev, [i]: 0 }));
 
@@ -219,8 +246,14 @@ export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
         }
       }
 
-      await fetchCourses();
       resetEditor();
+
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        await fetchCourses(1);
+      }
+
       handlePostSave();
     } catch (error) {
       console.error("Submission failed", error);
@@ -319,12 +352,12 @@ export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
                     </span>
                     <span>{uploadProgress[idx]}%</span>
                   </div>
-                  
+
                   {/* Progress Bar Track */}
                   <div className="w-full bg-white rounded-full h-2.5 overflow-hidden relative z-10 border border-purple-100">
                     {/* The Fill */}
-                    <div 
-                      className="bg-gradient-to-r from-[#600694] to-[#8c1ac9] h-full rounded-full transition-all duration-300 relative" 
+                    <div
+                      className="bg-gradient-to-r from-[#600694] to-[#8c1ac9] h-full rounded-full transition-all duration-300 relative"
                       style={{ width: `${uploadProgress[idx]}%` }}
                     >
                       {/* Inner Shimmer Effect */}
@@ -368,6 +401,52 @@ export function CoursesTab({ handlePostSave }: { handlePostSave: () => void }) {
               </div>
             </div>
           ))}
+
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-100">
+              <p className="text-xs text-muted-foreground">
+                Showing page{" "}
+                <span className="font-bold text-[#600694]">{currentPage}</span>
+                {" "}of{" "}
+                <span className="font-bold text-[#600694]">{totalPages}</span>
+                {" "}({totalCourses} total courses)
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentPage === 1 || isLoading}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className="px-4 py-2 rounded-full text-sm font-bold border border-[#600694]/20 text-[#600694] hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-10 h-10 rounded-full text-sm font-bold transition-all ${currentPage === page
+                      ? "bg-[#600694] text-white"
+                      : "border border-gray-200 text-gray-600 hover:bg-purple-50"
+                      }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages || isLoading}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  className="px-4 py-2 rounded-full text-sm font-bold border border-[#600694]/20 text-[#600694] hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </article>

@@ -1,10 +1,8 @@
 import { motion } from "framer-motion";
 import { Sparkles, CheckCircle2, CircleDot, ArrowRight } from "lucide-react";
 import { AnimatedPage } from "@/components/common/AnimatedPage"; 
-import satsung from "@/assets/satsung-logo.jpg"; 
-import cat from "@/assets/cat.jpeg"; 
-import about1 from "@/assets/about1.webp";
-import about2 from "@/assets/about2.webp";
+
+
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -37,7 +35,7 @@ export default function AboutPage() {
               className="aspect-video md:aspect-[21/9] w-full overflow-hidden rounded-3xl border border-primary/20 shadow-lg"
             >
               <img
-                src={satsung}
+                src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/satsung-logo.jpg"
                 alt="Shifting Into Awareness Hero"
                 className="h-full w-full object-cover"
               />
@@ -52,7 +50,7 @@ export default function AboutPage() {
                   Shifting Into Awareness
                 </motion.h1>
                 
-                <motion.p variants={fadeInUp} className="sia-body text-muted-foreground text-lg">
+                <motion.p variants={fadeInUp} className="sia-body text-muted-foreground text-xl">
                   <strong className="text-foreground">Shifting Into Awareness</strong>, as the name
                   reveals, is a platform that helps seekers of truth to make the shift from ignorance
                   to wisdom, from darkness to light, from bondage to freedom, from falseness to truth.
@@ -71,7 +69,7 @@ export default function AboutPage() {
                   and a false sense of identity—to living in a state of pure presence or the “Self”
                 </motion.blockquote>
 
-                <motion.p variants={fadeInUp} className="sia-body text-muted-foreground text-lg">
+                <motion.p variants={fadeInUp} className="sia-body text-muted-foreground text-xl">
                   This shift is often associated with the teachings of Jake Light and his platform,
                   Shifting Into Awareness, which provides a roadmap for seekers to move from ignorance
                   to wisdom.
@@ -84,7 +82,7 @@ export default function AboutPage() {
                 className="relative w-full aspect-square overflow-hidden rounded-3xl border border-primary/20 shadow-lg"
               >
                 <img
-                  src={cat}
+                  src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/cat.jpeg"
                   alt="Awareness Placeholder"
                   className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
                 />
@@ -127,10 +125,10 @@ export default function AboutPage() {
               },
             ].map((aspect, i) => (
               <motion.div key={i} variants={fadeInUp} className="sia-card group">
-                <h3 className="mb-3 text-xl font-bold text-foreground transition-colors group-hover:text-primary">
+                <h3 className="mb-3 text-2xl font-bold text-foreground transition-colors group-hover:text-primary">
                   {aspect.title}
                 </h3>
-                <p className="sia-body text-muted-foreground">{aspect.desc}</p>
+                <p className="sia-body text-muted-foreground text-xl">{aspect.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -164,7 +162,7 @@ export default function AboutPage() {
             ].map((obj, i) => (
               <motion.div key={i} variants={fadeInUp} className="flex items-start gap-3">
                 <CheckCircle2 className="mt-0.5 shrink-0 text-primary" size={20} />
-                <p className="sia-body text-foreground">{obj}</p>
+                <p className="sia-body text-foreground text-xl">{obj}</p>
               </motion.div>
             ))}
           </div>
@@ -226,14 +224,14 @@ export default function AboutPage() {
               },
             ].map((item, i) => (
               <motion.div key={i} variants={fadeInUp} className="sia-card relative overflow-hidden">
-                <div className="absolute right-0 top-0 rounded-bl-3xl bg-primary/10 px-6 py-2 text-sm font-bold tracking-widest text-primary">
+                <div className="absolute right-0 top-0 rounded-bl-3xl bg-primary/10 px-6 py-2 text-sm font-bold tracking-widest text-primary text-2xl">
                   {item.phase}
                 </div>
                 <div className="mb-4 pr-32">
-                  <h3 className="text-xl font-bold text-foreground">{item.title}</h3>
-                  <span className="text-sm italic text-muted-foreground">{item.subtitle}</span>
+                  <h3 className="text-xl font-bold text-foreground text-2xl">{item.title}</h3>
+                  <span className="text-sm italic text-muted-foreground text-xl">{item.subtitle}</span>
                 </div>
-                <p className="sia-body text-muted-foreground">{item.text}</p>
+                <p className="sia-body text-muted-foreground text-xl">{item.text}</p>
               </motion.div>
             ))}
           </div>
@@ -263,11 +261,11 @@ export default function AboutPage() {
               ].map((text, i) => (
                 <motion.div key={i} variants={fadeInUp} className="sia-card flex items-start gap-4">
                   <ArrowRight className="mt-0.5 shrink-0 text-primary" size={20} />
-                  <p className="font-medium text-foreground">{text}</p>
+                  <p className="font-medium text-foreground text-xl">{text}</p>
                 </motion.div>
               ))}
             </div>
-            <motion.div variants={fadeInUp} className="space-y-6 text-lg text-muted-foreground">
+            <motion.div variants={fadeInUp} className="space-y-6 text-lg text-muted-foreground text-xl">
               <p>
                 We welcome you to the exciting inner journey of life ~ which transforms your external
                 journey of life. There are regular free internal Zoom sessions, paid and free webinars
@@ -329,7 +327,7 @@ export default function AboutPage() {
 
             <motion.p
               variants={fadeInUp}
-              className="sia-body mb-4 text-muted-foreground text-lg"
+              className="sia-body mb-4 text-muted-foreground text-xl"
             >
               SiA is not affiliated or connected in any manner with any spiritual or
               religious organisation. It is purely the product of grace of the Divine
@@ -339,7 +337,7 @@ export default function AboutPage() {
 
             <motion.p
               variants={fadeInUp}
-              className="sia-body mb-8 text-muted-foreground text-lg"
+              className="sia-body mb-8 text-muted-foreground text-xl"
             >
               SiA came into existence after a series of spontaneous events, under the
               guidance, support and love of the Ascended Masters, to whom Jake owes
@@ -362,7 +360,7 @@ export default function AboutPage() {
     className="group w-full aspect-square overflow-hidden border border-primary/10 shadow-lg md:rounded-xl"
   >
     <img
-      src={about1}
+      src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/about1.webp"
       alt="Meditation and peace"
       className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
     />
@@ -372,7 +370,7 @@ export default function AboutPage() {
     className="group w-full aspect-square overflow-hidden border border-primary/10 shadow-lg md:rounded-xl"
   >
     <img
-      src={about2}
+      src="https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/about2.webp"
       alt="Spiritual awakening"
       className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
     />

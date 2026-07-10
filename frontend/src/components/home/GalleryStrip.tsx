@@ -2,18 +2,14 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 
-import gallerySatsang from "@/assets/gallery-satsang.jpg";
-import lotusDawn from "@/assets/lotus-dawn.jpg";
-import retreatMountain from "@/assets/retreat-mountain.jpg";
-import heroMandala from "@/assets/hero-mandala.jpg";
-import scriptureStudy from "@/assets/scripture-study.jpg";
+
 
 const slides = [
-  { src: gallerySatsang, alt: "Satsang gathering" },
-  { src: lotusDawn, alt: "Lotus at dawn" },
-  { src: retreatMountain, alt: "Mountain retreat" },
-  { src: heroMandala, alt: "Mandala sanctuary" },
-  { src: scriptureStudy, alt: "Scripture and beads" },
+  { src: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/gallery-satsang.jpg", alt: "Satsang gathering" },
+  { src: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/lotus-dawn.jpg", alt: "Lotus at dawn" },
+  { src: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/retreat-mountain.jpg", alt: "Mountain retreat" },
+  { src: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/hero-mandala.jpg", alt: "Mandala sanctuary" },
+  { src: "https://pub-6daec8e7d55e44cda2c702f6f7b08759.r2.dev/sia-assets/scripture-study.jpg", alt: "Scripture and beads" },
 ];
 
 export function GalleryStrip() {

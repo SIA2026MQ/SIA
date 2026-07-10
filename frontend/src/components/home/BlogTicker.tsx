@@ -113,7 +113,7 @@ export function BlogTicker() {
       <div className="sia-container mb-12 flex flex-col items-center justify-center text-center px-4 md:px-8 max-w-7xl mx-auto relative">
         <div className="space-y-2 max-w-2xl">
           <h2 className="sia-h2 text-3xl md:text-5xl">The Pathless Path Blog</h2>
-          <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[#fdb022]">
+          <p className="text-[10px] sm:text-lg font-bold uppercase tracking-widest text-[#fdb022]">
             Reflections on silence, awakening, and the science of the inner Self.
           </p>
         </div>
@@ -121,7 +121,7 @@ export function BlogTicker() {
         {!isLoading && totalBlogs > 4 && (
           <Link
             to="/blog"
-            className="group flex items-center gap-2 text-sm md:text-base font-semibold text-primary hover:text-[#fdb022] transition-colors mt-6 md:mt-0 md:absolute md:right-8 md:top-1/2 md:-translate-y-1/2"
+            className="group flex items-center gap-2 text-xl md:text-2xl font-semibold text-primary hover:text-[#fdb022] transition-colors mt-6 md:mt-0 md:absolute md:right-8 md:top-1/2 md:-translate-y-1/2"
           >
             See more Blogs
             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />

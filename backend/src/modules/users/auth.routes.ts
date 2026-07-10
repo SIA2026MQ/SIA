@@ -19,7 +19,7 @@ router.get('/me', authenticateJWT, (req: AuthRequest, res: Response) => {
   }
 });
 
-router.get('/subscription', authenticateJWT, getUserSubscription);
+router.get('/membership', authenticateJWT, getUserSubscription);
 
 // 🚨 NEW: Notification Endpoints
 router.get('/notifications', authenticateJWT, getEventNotifications);

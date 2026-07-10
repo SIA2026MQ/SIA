@@ -24,13 +24,7 @@ const gracefulShutdown = async (signal: string) => {
   });
 
   // 2. Tell BullMQ workers to finish their current job, but don't take new ones
-  await Promise.all([
-    emailWorker.close(),
-    videoWorker.close()
-  ]);
-  console.log('Background workers safely spun down.');
-
-  process.exit(0);
+  
 };
 
 // Catch termination signals from Docker / Hosting Providers (e.g., Render, AWS, Heroku)

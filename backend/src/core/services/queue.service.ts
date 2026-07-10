@@ -40,4 +40,3 @@ if (!redisUrl) {
 //   connection: redisConnection
 // });
 
-console.log('📦 Local Redis Video Queue initialized successfully.');

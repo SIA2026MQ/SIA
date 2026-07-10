@@ -118,7 +118,7 @@ export default function JoinPage() {
           <h1 className="font-display text-4xl md:text-5xl font-bold text-[#600694] mb-6 tracking-tight">
             Join the SiA Family
           </h1>
-          <p className="text-muted-foreground text-lg leading-relaxed">
+          <p className="text-muted-foreground text-xl leading-relaxed">
             You may use this form to join the regular Zoom sessions. Please note that this platform is not a casual platform but a serious platform where spiritual evolution is at the highest priority.
           </p>
         </div>
@@ -139,7 +139,7 @@ export default function JoinPage() {
               <h3 className="flex items-center gap-3 text-lg font-bold uppercase tracking-widest mb-4">
                 <CheckCircle2 className="w-5 h-5 text-[#600694]" /> Becoming a Member
               </h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
+              <p className="text-muted-foreground leading-relaxed mb-4 text-xl">
                 You become a member of SiA as soon as you attend any webinar or course of SiA. In case you have not done any, it is mandatory to do the basic course of SiA in order to become a member.
               </p>
               <a href="/courses" target="_blank" rel="noreferrer" className="text-[#600694] font-semibold hover:underline flex items-center gap-2">
@@ -152,10 +152,10 @@ export default function JoinPage() {
               <h3 className="flex items-center gap-3 text-lg font-bold uppercase tracking-widest mb-4">
                 <Info className="w-5 h-5 text-[#600694]" /> Daily Satsangs & Sessions
               </h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
+              <p className="text-muted-foreground leading-relaxed mb-4 text-xl">
                 There is a monthly membership fee, which gives access to unlimited webinars and daily sessions for the entire month. Free satsangs include daily powerful sessions, clarity sessions, teachings from higher scriptures, deep contemplative sessions, meditative sessions, followup sessions for webinars and practice sessions.
               </p>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed text-xl">
                 There are regular <strong>LIVE CLARITY SESSIONS</strong> where you may directly ask questions on Zoom or via private message (confidentiality maintained).
               </p>
             </motion.div>
@@ -165,7 +165,7 @@ export default function JoinPage() {
               <h3 className="flex items-center gap-3 text-lg font-bold uppercase tracking-widest mb-4">
                 <MessageCircle className="w-5 h-5 text-[#600694]" /> Internal Communication
               </h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
+              <p className="text-muted-foreground leading-relaxed mb-4 text-xl">
                 We are using the <strong>Arratai App</strong> for our messaging services. It is mandatory that you install this App. We will not add your number to any open groups to protect your privacy. All updates will reach you via direct encrypted broadcast messages.
               </p>
               <div className="flex flex-col gap-3 mt-4">
@@ -183,10 +183,10 @@ export default function JoinPage() {
               <h3 className="flex items-center gap-3 text-lg font-bold uppercase tracking-widest mb-4">
                 <MapPin className="w-5 h-5 text-[#600694]" /> Retreats
               </h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
+              <p className="text-muted-foreground leading-relaxed mb-4 text-xl">
                 Only members are entitled for retreats (subject to approval). Retreats range from 4 to 9 days in sacred locations like Tiruvannamalai, Kanhagad, Ganeshpuri, Delhi, Uttarkashi, Gorakhpur.
               </p>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed text-xl">
                 Main retreats are conducted 2-3 times a year in Tiruvannamalai at the foothills of Arunachala. New members must have attended a webinar in the past 6 months to apply.
               </p>
             </motion.div>
@@ -196,7 +196,7 @@ export default function JoinPage() {
               <h3 className="flex items-center gap-3 text-lg font-bold uppercase tracking-widest mb-6 text-[#F7F3FA]">
                 <ShieldAlert className="w-5 h-5 text-[#C45E9F]" /> Worth Mentioning
               </h3>
-              <ul className="space-y-4 text-white/80 font-light">
+              <ul className="space-y-4 text-white/80 font-light text-xl">
                 <li className="flex items-start gap-3"><span className="text-[#C45E9F] mt-1">•</span> Here there is no path and hence nothing fanatical to any guru, path, philosophy, or religion.</li>
                 <li className="flex items-start gap-3"><span className="text-[#C45E9F] mt-1">•</span> Time disciplines are strict.</li>
                 <li className="flex items-start gap-3"><span className="text-[#C45E9F] mt-1">•</span> Zero-tolerance to malpractices or actions based on impure intentions.</li>

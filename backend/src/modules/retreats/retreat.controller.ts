@@ -36,51 +36,42 @@ const s3Client = new S3Client({
 });
 
 // -----------------------------------------------------------------------------
-// 2. [ADMIN] Delete Retreat (NEW)
+// 2. [ADMIN] Delete Retreat
 // -----------------------------------------------------------------------------
-
 export const deleteRetreat = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    // 1. Fetch the retreat first to get the imageUrl
     const retreat = await prisma.retreat.findUnique({ where: { id } });
     if (!retreat) {
       res.status(404).json({ error: 'Retreat not found' });
       return;
     }
 
-    // 🚨 2. Permanently delete the cover image from Cloudflare R2
     if (retreat.imageUrl && process.env.R2_BUCKET_NAME) {
       try {
-        // Extract the exact object key from the URL (e.g., "raw_uploads/images/12345-cover.jpg")
         const urlObj = new URL(retreat.imageUrl);
-        const objectKey = urlObj.pathname.substring(1); // Removes the leading '/'
+        const objectKey = urlObj.pathname.substring(1); 
 
         await s3Client.send(new DeleteObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: decodeURIComponent(objectKey)
         }));
-        
-        console.log(`[BACKEND] 🗑️ Retreat Image deleted from R2: ${objectKey}`);
       } catch (r2Error) {
         console.warn("⚠️ Could not delete image from R2:", r2Error);
       }
     }
 
-    // 3. CASCADE DELETE: Wipe out all applications first
     await prisma.retreatApplication.deleteMany({
       where: { retreatId: id }
     });
 
-    // 4. Delete the Retreat itself
     await prisma.retreat.delete({
       where: { id }
     });
 
     res.status(200).json({ message: 'Retreat, applications, and R2 image permanently deleted.' });
   } catch (error: any) {
-    console.error("🔥 DATABASE ERROR DELETING RETREAT:", error);
     res.status(500).json({ error: 'Failed to delete retreat', details: error.message });
   }
 };
@@ -107,14 +98,36 @@ export const getRetreats = async (req: Request, res: Response): Promise<void> =>
 export const applyForRetreat = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const { retreatId, name, phone } = req.body; 
+    
+    // 🚨 Extracting all the new fields from req.body
+    const { 
+      retreatId, name, phone, age, isMember, address, city, state, country, 
+      zip, spiritualPractice, familiarity, agreedToMembership, agreedToAccuracy 
+    } = req.body; 
 
-    // Securely fetch user email from DB, ignoring anything sent from the frontend
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) { res.status(404).json({ error: 'User not found' }); return; }
 
     const application = await prisma.retreatApplication.create({
-      data: { userId, retreatId, name, email: user.email, phone, status: 'PENDING' },
+      data: { 
+        userId, 
+        retreatId, 
+        name, 
+        email: user.email, 
+        phone, 
+        age: parseInt(age, 10),
+        isMember,
+        address,
+        city,
+        state,
+        country,
+        zip,
+        spiritualPractice,
+        familiarity,
+        agreedToMembership: agreedToMembership === true,
+        agreedToAccuracy: agreedToAccuracy === true,
+        status: 'PENDING' 
+      },
     });
 
     res.status(201).json({ message: 'Application submitted for review!', application });
@@ -122,7 +135,7 @@ export const applyForRetreat = async (req: AuthRequest, res: Response): Promise<
     if (error.code === 'P2002') {
       res.status(400).json({ error: 'You have already applied for this retreat.' }); return;
     }
-    res.status(500).json({ error: 'Failed to submit application' });
+    res.status(500).json({ error: 'Failed to submit application', details: error.message });
   }
 };
 
@@ -159,7 +172,7 @@ export const getAllApplications = async (req: Request, res: Response): Promise<v
 };
 
 // -----------------------------------------------------------------------------
-// 7. [ADMIN] Approve or Disapprove Application (Sends Email to DB User)
+// 7. [ADMIN] Approve or Disapprove Application
 // -----------------------------------------------------------------------------
 export const updateApplicationStatus = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -169,10 +182,9 @@ export const updateApplicationStatus = async (req: Request, res: Response): Prom
     const application = await prisma.retreatApplication.update({
       where: { id: applicationId },
       data: { status },
-      include: { retreat: true, user: true } // Fetch the DB user
+      include: { retreat: true, user: true }
     });
 
-    // Send Email to the DB User's email
     const subject = status === 'APPROVED' 
       ? `You're Approved! Join us for ${application.retreat.title}` 
       : `Update on your application for ${application.retreat.title}`;
@@ -199,7 +211,6 @@ export const updateApplicationStatus = async (req: Request, res: Response): Prom
 
     res.status(200).json({ message: `Application ${status} updated!`, application });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: 'Failed to update status' });
   }
 };
@@ -224,7 +235,6 @@ export const updateRetreat = async (req: Request, res: Response): Promise<void> 
 
     res.status(200).json({ message: 'Retreat updated successfully', retreat });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: 'Failed to update retreat' });
   }
 };

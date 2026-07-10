@@ -33,43 +33,24 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 // -----------------------------------------------------------------------------
 // Get User Subscription
 // -----------------------------------------------------------------------------
-export const getUserSubscription = async (req: Request, res: Response): Promise<void> => {
+// Check if user has an active subscription
+export const getUserSubscription = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ message: 'Unauthorized: No token provided' });
-      return;
-    }
-
-    const token = authHeader.split(' ')[1];
+    const userId = req.user!.id;
     
-    // 1. Verify Firebase Token
-    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-    
-    // 2. Find user in Postgres
-    const user = await prisma.user.findUnique({ 
-      where: { firebaseUid: decodedToken.uid } 
-    });
-
-    if (!user) {
-      res.status(404).json({ message: 'User not found' });
-      return;
-    }
-
-    // 3. Find active subscription
+    // Find any active subscription for this user
     const subscription = await prisma.userSubscription.findFirst({
-      where: {
-        userId: user.id,
+      where: { 
+        userId,
         isActive: true,
-        expiryDate: { gte: new Date() } 
+        expiryDate: { gt: new Date() } // Ensure it hasn't expired
       },
       include: { plan: true }
     });
 
     res.status(200).json({ subscription });
   } catch (error) {
-    console.error('Fetch Subscription Error:', error);
-    res.status(500).json({ error: 'Internal server error while fetching subscription' });
+    res.status(500).json({ error: 'Failed to fetch subscription status' });
   }
 };
 
