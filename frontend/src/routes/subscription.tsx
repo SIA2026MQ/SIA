@@ -346,16 +346,16 @@ export default function SatsungsPage() {
               <Users className="h-32 w-32 text-[#600694]" />
             </div>
             <h3 className="font-display text-2xl text-[#600694] mb-2 flex items-center justify-center gap-2 relative z-10">
-              <Users className="h-6 w-6" /> Have a group of friends?
+              <Users className="h-6 w-6" /> ARE YOU MORE THAN ONE IN FAMILY?
             </h3>
             <p className="text-gray-600 mb-6 relative z-10">
-              Spiritual growth is better together. Apply as a group to receive a special, exclusive discount code for everyone!
+              If you are the sole earner in your family and have more than one family member in SiA, you may request for a discount. (Please apply for discounts only if you cannot afford it)
             </p>
             <button
               onClick={openGroupModal}
               className="px-8 py-3 bg-[#600694]/10 text-[#600694] rounded-full font-bold hover:bg-[#600694] hover:text-white transition-colors relative z-10"
             >
-              Apply for Group Discount
+              APPLY FOR FAMILY DISCOUNT
             </button>
           </div>
         </div>

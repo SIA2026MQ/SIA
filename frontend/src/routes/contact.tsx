@@ -1,4 +1,6 @@
 import { motion } from "framer-motion";
+import contactImage from "@/assets/contact.jpeg"; // Example image
+import aratai from "@/assets/We-are-now-on-Arratai-1.gif"
 
 // Animation variants
 const staggerContainer = {
@@ -76,16 +78,17 @@ export function ContactPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
           {/* LEFT SIDE: Two Steady (Sticky) Vertical Image Rectangles */}
-          <div className="lg:col-span-5 flex flex-col gap-8 lg:sticky lg:top-8 h-max">
+          <div className="lg:col-span-5 flex flex-col gap-6 lg:sticky lg:top-8 h-max">
             <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
               variants={fadeInUp}
-              className="group aspect-[4/3] w-full overflow-hidden rounded-3xl border border-[#4B1D52]/10 shadow-lg bg-white"
+              // CHANGED: Using aspect-square or aspect-[4/5] ensures the two stacked images match the form height
+              className="group aspect-[4/5] md:aspect-square w-full overflow-hidden rounded-3xl border border-[#4B1D52]/10 shadow-lg bg-white"
             >
               <img
-                src="https://images.unsplash.com/photo-1499209974431-9dddcece7f88?q=80&w=1000&auto=format&fit=crop"
+                src={contactImage}
                 alt="Meditation space"
                 className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
               />
@@ -96,12 +99,12 @@ export function ContactPage() {
               whileInView="visible"
               viewport={{ once: true }}
               variants={fadeInUp}
-              className="group aspect-[4/3] w-full overflow-hidden rounded-3xl border border-[#4B1D52]/10 shadow-lg bg-white"
+              className="group aspect-[4/5] md:aspect-square w-full overflow-hidden rounded-3xl border border-[#4B1D52]/10 shadow-lg bg-white"
             >
               <img
-                src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop"
+                src={aratai}
                 alt="Spiritual path"
-                className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                className="h-full w-full object-contain transition-transform duration-700 ease-out group-hover:scale-105"
               />
             </motion.div>
           </div>

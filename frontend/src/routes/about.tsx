@@ -1,7 +1,10 @@
 import { motion } from "framer-motion";
 import { Sparkles, CheckCircle2, CircleDot, ArrowRight } from "lucide-react";
-import { AnimatedPage } from "@/components/common/AnimatedPage"; // Assuming you have this wrapper
-import satsung from "@/assets/satsung-logo.jpg"; // Example image
+import { AnimatedPage } from "@/components/common/AnimatedPage"; 
+import satsung from "@/assets/satsung-logo.jpg"; 
+import cat from "@/assets/cat.jpeg"; 
+import about1 from "@/assets/about1.webp";
+import about2 from "@/assets/about2.webp";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -28,9 +31,9 @@ export default function AboutPage() {
             variants={staggerContainer}
             className="space-y-12"
           >
-            {/* Rectangular Image with Border */}
+            {/* Top Rectangular Image with Border */}
             <motion.div
-              
+              variants={fadeInUp}
               className="aspect-video md:aspect-[21/9] w-full overflow-hidden rounded-3xl border border-primary/20 shadow-lg"
             >
               <img
@@ -40,34 +43,53 @@ export default function AboutPage() {
               />
             </motion.div>
 
-            <div className="max-w-4xl space-y-6">
-              <motion.h1  className="sia-h1 text-primary">
-                Shifting Into Awareness
-              </motion.h1>
-              <motion.p  className="sia-body text-muted-foreground text-lg">
-                <strong className="text-foreground">Shifting Into Awareness</strong>, as the name
-                reveals, is a platform that helps seekers of truth to make the shift from ignorance
-                to wisdom, from darkness to light, from bondage to freedom, from falseness to truth.
-                It helps fully shift our existence from the mind ego to the Self (soul
-                consciousness). It’s only when one lives in awareness that one can remain unentangled
-                with the (highs and lows) dramas of life. It leads to the state of Jeevanamukta
-                (liberated while in the body).
-              </motion.p>
-
-              <motion.blockquote
+            {/* 2-Column Grid for Text (Left) and Image (Right) */}
+            <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+              
+              {/* Left Side: Text Content */}
+              <div className="space-y-6">
+                <motion.h1 variants={fadeInUp} className="sia-h1 text-primary">
+                  Shifting Into Awareness
+                </motion.h1>
                 
-                className="sia-card my-8 border-l-4 border-l-primary p-8 text-xl italic leading-relaxed text-primary shadow-md"
-              >
-                “Shifting into awareness” refers to a spiritual and psychological transition from
-                living in the “mind-ego”—a state dominated by reactive thoughts, past conditioning,
-                and a false sense of identity—to living in a state of pure presence or the “Self”
-              </motion.blockquote>
+                <motion.p variants={fadeInUp} className="sia-body text-muted-foreground text-lg">
+                  <strong className="text-foreground">Shifting Into Awareness</strong>, as the name
+                  reveals, is a platform that helps seekers of truth to make the shift from ignorance
+                  to wisdom, from darkness to light, from bondage to freedom, from falseness to truth.
+                  It helps fully shift our existence from the mind ego to the Self (soul
+                  consciousness). It’s only when one lives in awareness that one can remain unentangled
+                  with the (highs and lows) dramas of life. It leads to the state of Jeevanamukta
+                  (liberated while in the body).
+                </motion.p>
 
-              <motion.p  className="sia-body text-muted-foreground text-lg">
-                This shift is often associated with the teachings of Jake Light and his platform,
-                Shifting Into Awareness, which provides a roadmap for seekers to move from ignorance
-                to wisdom.
-              </motion.p>
+                <motion.blockquote
+                  variants={fadeInUp}
+                  className="sia-card my-8 border-l-4 border-l-primary p-8 text-xl italic leading-relaxed text-primary shadow-md"
+                >
+                  “Shifting into awareness” refers to a spiritual and psychological transition from
+                  living in the “mind-ego”—a state dominated by reactive thoughts, past conditioning,
+                  and a false sense of identity—to living in a state of pure presence or the “Self”
+                </motion.blockquote>
+
+                <motion.p variants={fadeInUp} className="sia-body text-muted-foreground text-lg">
+                  This shift is often associated with the teachings of Jake Light and his platform,
+                  Shifting Into Awareness, which provides a roadmap for seekers to move from ignorance
+                  to wisdom.
+                </motion.p>
+              </div>
+
+              {/* Right Side: Square Placeholder Image */}
+              <motion.div
+                variants={fadeInUp}
+                className="relative w-full aspect-square overflow-hidden rounded-3xl border border-primary/20 shadow-lg"
+              >
+                <img
+                  src={cat}
+                  alt="Awareness Placeholder"
+                  className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                />
+              </motion.div>
+              
             </div>
           </motion.div>
         </div>
@@ -82,7 +104,7 @@ export default function AboutPage() {
           variants={staggerContainer}
           className="sia-container"
         >
-          <motion.h2  className="sia-h2 mb-10 flex items-center gap-3">
+          <motion.h2 variants={fadeInUp} className="sia-h2 mb-10 flex items-center gap-3">
             <Sparkles className="text-primary" size={28} /> Key Aspects
           </motion.h2>
           <div className="grid gap-6 md:grid-cols-2">
@@ -104,7 +126,7 @@ export default function AboutPage() {
                 desc: "Supporters of this shift claim it leads to a “neutral and enriching life,” reduces stress and anxiety, and ultimately leads to Self-Realisation.",
               },
             ].map((aspect, i) => (
-              <motion.div key={i}  className="sia-card group">
+              <motion.div key={i} variants={fadeInUp} className="sia-card group">
                 <h3 className="mb-3 text-xl font-bold text-foreground transition-colors group-hover:text-primary">
                   {aspect.title}
                 </h3>
@@ -124,7 +146,7 @@ export default function AboutPage() {
           variants={staggerContainer}
           className="sia-container"
         >
-          <motion.h2  className="sia-h2 mb-10">
+          <motion.h2 variants={fadeInUp} className="sia-h2 mb-10">
             Objectives of Shifting Into Awareness
           </motion.h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:max-w-5xl">
@@ -140,14 +162,14 @@ export default function AboutPage() {
               "Annihilating all doership, living in total divine flow",
               "Nothing to Do but Abide in the Self",
             ].map((obj, i) => (
-              <motion.div key={i}  className="flex items-start gap-3">
+              <motion.div key={i} variants={fadeInUp} className="flex items-start gap-3">
                 <CheckCircle2 className="mt-0.5 shrink-0 text-primary" size={20} />
                 <p className="sia-body text-foreground">{obj}</p>
               </motion.div>
             ))}
           </div>
           <motion.div
-            
+            variants={fadeInUp}
             className="mt-10 overflow-hidden rounded-3xl border border-primary/20 bg-primary/5 p-8"
           >
             <p className="font-display text-2xl italic leading-tight text-primary">
@@ -167,7 +189,7 @@ export default function AboutPage() {
           variants={staggerContainer}
           className="sia-container"
         >
-          <motion.h2  className="sia-h2 mb-12">
+          <motion.h2 variants={fadeInUp} className="sia-h2 mb-12">
             Basic Theme ~ The Phases
           </motion.h2>
           <div className="space-y-6">
@@ -203,7 +225,7 @@ export default function AboutPage() {
                 text: "Grace magnetically absorbs the soul back into the Source. With more and more expansion of one’s divine presence of divine love and light, the seeker gradually moves into the state of being free even while being in the body. The body or mind, though alive, does not hold the soul that is living in freedom in the body, going about doing it’s regular activities. All previous phases involve the active participation of the seeker but this stage is of pure grace. In this state there is nothing worth DOING but is pure BEING. Nothing much is done here but pure surrender to the grace to purely absorbs back the soul back into its Source. One simply becomes THAT.",
               },
             ].map((item, i) => (
-              <motion.div key={i}  className="sia-card relative overflow-hidden">
+              <motion.div key={i} variants={fadeInUp} className="sia-card relative overflow-hidden">
                 <div className="absolute right-0 top-0 rounded-bl-3xl bg-primary/10 px-6 py-2 text-sm font-bold tracking-widest text-primary">
                   {item.phase}
                 </div>
@@ -227,7 +249,7 @@ export default function AboutPage() {
           variants={staggerContainer}
           className="sia-container"
         >
-          <motion.h2  className="sia-h2 mb-10">
+          <motion.h2 variants={fadeInUp} className="sia-h2 mb-10">
             What We Do
           </motion.h2>
           <div className="grid gap-12 lg:grid-cols-2">
@@ -239,13 +261,13 @@ export default function AboutPage() {
                 "Moving towards Inner Peace, Contentment, Happiness & Inner Freedom!",
                 "Regular Satsangs to stay consistent, connected to the Truth and updated",
               ].map((text, i) => (
-                <motion.div key={i}  className="sia-card flex items-start gap-4">
+                <motion.div key={i} variants={fadeInUp} className="sia-card flex items-start gap-4">
                   <ArrowRight className="mt-0.5 shrink-0 text-primary" size={20} />
                   <p className="font-medium text-foreground">{text}</p>
                 </motion.div>
               ))}
             </div>
-            <motion.div  className="space-y-6 text-lg text-muted-foreground">
+            <motion.div variants={fadeInUp} className="space-y-6 text-lg text-muted-foreground">
               <p>
                 We welcome you to the exciting inner journey of life ~ which transforms your external
                 journey of life. There are regular free internal Zoom sessions, paid and free webinars
@@ -272,7 +294,7 @@ export default function AboutPage() {
           </div>
 
           <motion.div
-            
+            variants={fadeInUp}
             className="mt-16 overflow-hidden rounded-3xl bg-primary p-10 text-center text-primary-foreground shadow-xl lg:p-16"
           >
             <p className="mx-auto mb-6 max-w-4xl font-display text-xl leading-relaxed opacity-90 md:text-2xl">
@@ -292,73 +314,72 @@ export default function AboutPage() {
 
       {/* --- 6. HOW IT BEGAN & FOOTER IMAGES (section-even) --- */}
       <section className="section-even py-16 pb-32 bg-[#F7E7E7]">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={staggerContainer}
+          className="sia-container"
+        >
+          {/* Heading */}
+          <div className="mb-12 max-w-3xl">
+            <motion.h2 variants={fadeInUp} className="sia-h2 mb-6">
+              How did SiA begin?
+            </motion.h2>
+
+            <motion.p
+              variants={fadeInUp}
+              className="sia-body mb-4 text-muted-foreground text-lg"
+            >
+              SiA is not affiliated or connected in any manner with any spiritual or
+              religious organisation. It is purely the product of grace of the Divine
+              and the unbiased, unconditional infinite Ascended Masters whom Jake is
+              connected with.
+            </motion.p>
+
+            <motion.p
+              variants={fadeInUp}
+              className="sia-body mb-8 text-muted-foreground text-lg"
+            >
+              SiA came into existence after a series of spontaneous events, under the
+              guidance, support and love of the Ascended Masters, to whom Jake owes
+              everything to.
+            </motion.p>
+
+            {/* Second Heading - Same Style */}
+            <motion.h2
+              variants={fadeInUp}
+              className="sia-h2 text-[#5F1380] mt-12"
+            >
+              OUR ROLE MODELS ~ ASCENDED MASTERS
+            </motion.h2>
+          </div>
+
+          {/* 🚨 UPDATED: Side-by-side exact fit for Desktop, preserved exact values for Mobile */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl">
   <motion.div
-    initial="hidden"
-    whileInView="visible"
-    viewport={{ once: true, margin: "-100px" }}
-    variants={staggerContainer}
-    className="sia-container"
+    variants={fadeInUp}
+    className="group w-full aspect-square overflow-hidden border border-primary/10 shadow-lg md:rounded-xl"
   >
-    {/* Heading */}
-    <div className="mb-16 max-w-3xl">
-      <motion.h2  className="sia-h2 mb-6">
-        How did SiA begin?
-      </motion.h2>
-
-      <motion.p
-        
-        className="sia-body mb-4 text-muted-foreground text-lg"
-      >
-        SiA is not affiliated or connected in any manner with any spiritual or
-        religious organisation. It is purely the product of grace of the Divine
-        and the unbiased, unconditional infinite Ascended Masters whom Jake is
-        connected with.
-      </motion.p>
-
-      <motion.p
-        
-        className="sia-body mb-8 text-muted-foreground text-lg"
-      >
-        SiA came into existence after a series of spontaneous events, under the
-        guidance, support and love of the Ascended Masters, to whom Jake owes
-        everything to.
-      </motion.p>
-
-      {/* Second Heading - Same Style */}
-      <motion.h2
-        
-        className="sia-h2 text-[#5F1380] mt-12"
-      >
-        OUR ROLE MODELS ~ ASCENDED MASTERS
-      </motion.h2>
-    </div>
-
-    {/* Images */}
-    <div className="grid gap-8 md:grid-cols-2">
-      <motion.div
-        
-        className="group aspect-[4/3] w-full overflow-hidden rounded-3xl border border-primary/10 shadow-lg md:aspect-auto md:h-[500px]"
-      >
-        <img
-          src="https://images.unsplash.com/photo-1499209974431-9dddcece7f88?q=80&w=2000&auto=format&fit=crop"
-          alt="Meditation and peace"
-          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-        />
-      </motion.div>
-
-      <motion.div
-        
-        className="group aspect-[4/3] w-full overflow-hidden rounded-3xl border border-primary/10 shadow-lg md:mt-12 md:aspect-auto md:h-[500px]"
-      >
-        <img
-          src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=2000&auto=format&fit=crop"
-          alt="Spiritual awakening"
-          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-        />
-      </motion.div>
-    </div>
+    <img
+      src={about1}
+      alt="Meditation and peace"
+      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+    />
   </motion.div>
-</section>
+  <motion.div
+    variants={fadeInUp}
+    className="group w-full aspect-square overflow-hidden border border-primary/10 shadow-lg md:rounded-xl"
+  >
+    <img
+      src={about2}
+      alt="Spiritual awakening"
+      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+    />
+  </motion.div>
+</div>
+        </motion.div>
+      </section>
     </AnimatedPage>
   );
 }

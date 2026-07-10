@@ -1,6 +1,11 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { AnimatedPage } from "@/components/common/AnimatedPage"; // Assuming wrapper
+import act_web from "@/assets/act_web.jpeg"; // Example image
+import act_satsang from "@/assets/act_sut.jpeg"; // Example image
+import act_course from "@/assets/act_cor.jpeg"; // Example image
+import act_retreat from "@/assets/act_ret.jpeg"; // Example image
+import act_gathering from "@/assets/act_gat.jpeg"; // Example image
 
 // Premium custom easing curve for a buttery smooth feel
 const smoothEase = [0.16, 1, 0.3, 1];
@@ -42,7 +47,7 @@ const activitiesData = [
     description: "Two webinars are conducted every month that share the practices, secrets and training on this path.",
     buttonText: "Check for Events",
     buttonLink: "#events",
-    imageSrc: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1000&auto=format&fit=crop",
+    imageSrc: act_web,
     imageAlt: "SiA Webinars",
   },
   {
@@ -51,7 +56,7 @@ const activitiesData = [
     description: "Regular satsangs are conducted every daily to enhance the wisdom and to bring clarity on the webinars and also a place for all members to interact directly with Jake Light.",
     buttonText: "Join The Satsangs",
     buttonLink: "#satsangs",
-    imageSrc: "https://images.unsplash.com/photo-1544027993-37dbd58eae8d?q=80&w=1000&auto=format&fit=crop",
+    imageSrc: act_satsang,
     imageAlt: "SiA Satsangs",
   },
   {
@@ -60,7 +65,7 @@ const activitiesData = [
     description: "Courses are important webinars that become available into member's account for unlimited viewing for an unlimited period of time.",
     buttonText: "See all Courses",
     buttonLink: "#courses",
-    imageSrc: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1000&auto=format&fit=crop",
+    imageSrc: act_course,
     imageAlt: "SiA Courses",
   },
   {
@@ -69,7 +74,7 @@ const activitiesData = [
     description: "Regular Residential Retreats are conducted in holy places like Tiruvannamalai, Ganeshpuri & Kanhangad.",
     buttonText: "Upcoming Retreats",
     buttonLink: "#retreats",
-    imageSrc: "https://images.unsplash.com/photo-1528605248644-14dd04022da1?q=80&w=1000&auto=format&fit=crop",
+    imageSrc: act_retreat,
     imageAlt: "SiA Retreats",
   },
   {
@@ -78,7 +83,7 @@ const activitiesData = [
     description: "Satsangs in-person are conducted on invitation to bring the community together in shared physical presence.",
     buttonText: "Invite for Satsang",
     buttonLink: "#invite",
-    imageSrc: "https://images.unsplash.com/photo-1523580494112-071d45d41bd8?q=80&w=1000&auto=format&fit=crop",
+    imageSrc: act_gathering,
     imageAlt: "SiA In-person Satsangs",
   },
 ];
@@ -111,9 +116,10 @@ export default function Activity() {
             >
               <div className="absolute inset-0 bg-[#600694]" />
               <p className="text-lg md:text-xl italic text-white leading-relaxed relative z-10">
-                <strong className="text-yellow-400 font-semibold">Shifting Into Awareness</strong> is active everyday, helping members and seekers stay connected with their true self. 
-                Most events are conducted online which makes it easier and convenient for seekers to participate from any part of the world. 
-                Other than online there are regular retreats also conducted in various sacred locations.
+                Without an outer satsang you can never be led to the inner satsang. Without an outer Without the outer
+                guru you can never be led to the inner guru. Without an outer experience you can never be led to the inner experience.Without an outer noise you can never be led to the inner silence. Choosing one over the other is still ignorance. Only when you have played both sides well, can you be free from the play of both.
+                <br/>
+                &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <b>-Jake Light</b>
               </p>
             </motion.div>
           </motion.div>

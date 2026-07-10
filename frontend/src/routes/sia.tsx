@@ -9,6 +9,8 @@ import {
 // Modern component imports from your system
 import { LotusDivider } from "@/components/common/LotusDivider";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
+import j1 from "@/assets/j1.jpeg";
+import j2 from "@/assets/j2.jpeg";
 
 // Asset Validations
 import jakePortrait from "@/assets/jake.png";
@@ -171,6 +173,29 @@ export default function SIAPage() {
         <p>
           He found himself being led to the Mahasamadhi of a great Mystic named Nityananda, in Ganeshpuri, after which his whole life and perspective changed 180 degrees. From there (2008) till now, ‘That One’ led him to many places, mystics and Masters. 
         </p>
+
+        {/* --- 🖼️ NEW RESPONSIVE IMAGE GRID --- */}
+        {/* Mobile: 1 column (stacked), smaller gaps & radii. PC: 2 columns, larger gaps & radii. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 my-10 sm:my-14">
+          <div className="group w-full aspect-square overflow-hidden rounded-2xl sm:rounded-3xl border border-[#600694]/10 shadow-lg">
+            {/* Replace `image1` with your actual imported image variable */}
+            <img
+              src={j1}
+              alt="Jake's Journey 1"
+              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            />
+          </div>
+          <div className="group w-full aspect-square overflow-hidden rounded-2xl sm:rounded-3xl border border-[#600694]/10 shadow-lg">
+            {/* Replace `image2` with your actual imported image variable */}
+            <img
+              src={j2}
+              alt="Jake's Journey 2"
+              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            />
+          </div>
+        </div>
+        {/* ------------------------------------- */}
+
         <p>
           One of his closest Masters was Shri. Avadhoot Shivanand, from whom he received initiation into the path of Kundalini and the nondualist practices of Sri Vidya. But above all these practices what he cherished the most always, and even now, is the love and grace of his Master. He had the blessing of living with and serving his master for close to 7 years. At that time, he was quite popularly known as Jacob Shivanand, as he associated his second name to the identity-less name of his Guru. Later, in order to dissolve another identity created with the name, he dissolved these identities by preferring to use the name ‘Jake Light’ (Jake being the short-form of Jacob and Light symbolizing the child of Light).
         </p>

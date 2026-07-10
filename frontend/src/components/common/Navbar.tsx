@@ -50,7 +50,7 @@ export function Navbar() {
       ],
     },
     {
-      label: "Courses",
+      label: "Courses", to: "/courses",
       children: [
         { label: "SiA Practices", to: "/courses?cat=practices" },
         { label: "Scriptures", to: "/courses?cat=scriptures" },

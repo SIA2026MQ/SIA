@@ -25,6 +25,7 @@ import SatsungsQnAPage from "@/routes/ScheduleTab";
 import LearningPage from "@/pages/LearnPage";
 import Activity from "@/routes/Activities";
 import Joinpage from "@/routes/join";
+
 function NotFoundPage() {
   return (
     <section className="section-odd min-h-screen pt-32">
