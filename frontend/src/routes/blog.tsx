@@ -1,8 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import heroMandala from "@/assets/hero-mandala.jpg";
-import lotusDawn from "@/assets/lotus-dawn.jpg";
+
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { api } from "@/lib/api";
 

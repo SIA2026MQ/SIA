@@ -57,7 +57,7 @@ export default function SatsungsQnAPage() {
           Subscription Required
         </h2>
         <p className="text-gray-500 mb-6 text-center max-w-md">
-          You must have an active subscription to view the upcoming schedule
+          You must have an active subscription to view the Upcoming Events
           and access live sessions.
         </p>
         <Link
@@ -76,7 +76,7 @@ export default function SatsungsQnAPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-10 text-center">
           <h1 className="text-4xl md:text-5xl font-display text-[#600694] mb-4">
-            Upcoming Schedule
+            Upcoming Events
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
             Your itinerary for upcoming Live Satsungs and Q&A sessions.

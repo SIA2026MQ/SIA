@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import ReactPlayer from "react-player";
 import { Loader2 } from "lucide-react";
-import lotusDawn from "@/assets/lotus-dawn.jpg";
+
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { api } from "@/lib/api";
 

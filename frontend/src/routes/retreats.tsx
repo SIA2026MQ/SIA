@@ -133,13 +133,13 @@ export default function RetreatsPage() {
                 </p>
 
                 <div className="space-y-2 mb-4 lg:mb-6 text-[10px] lg:text-xs font-semibold text-gray-700">
-                  <p className="flex items-center gap-2">
+                  <p className="flex items-center gap-2 text-lg">
                     <MapPin className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-[#600694]" />
                     {retreat.location}
                   </p>
 
-                  <p className="flex items-center gap-2">
-                    <Calendar className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-[#600694]" />
+                  <p className="flex items-center gap-2 text-lg ">
+                    <Calendar className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-[#600694] " />
                     {new Date(retreat.startDate).toLocaleDateString()} -{" "}
                     {new Date(retreat.endDate).toLocaleDateString()}
                   </p>
@@ -176,12 +176,12 @@ export default function RetreatsPage() {
                   <h2 className="text-2xl md:text-3xl font-display font-bold text-gray-900 mt-4 mb-4">{selectedRetreat.title}</h2>
 
                   <div className="flex flex-wrap gap-4 mb-8 text-sm font-semibold text-gray-700 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                    <p className="flex items-center gap-2 w-full"><MapPin className="h-4 w-4 text-[#600694]" /> {selectedRetreat.location}</p>
+                    <p className="flex items-center gap-2 w-full text-lg"><MapPin className="h-4 w-4 text-[#600694]" /> {selectedRetreat.location}</p>
                     <p className="flex items-center gap-2 w-full"><Calendar className="h-4 w-4 text-[#600694]" /> {new Date(selectedRetreat.startDate).toLocaleDateString()} to {new Date(selectedRetreat.endDate).toLocaleDateString()}</p>
                   </div>
 
-                  <div className="prose prose-sm text-gray-600">
-                    <p className="whitespace-pre-wrap leading-relaxed">{selectedRetreat.description}</p>
+                  <div className="prose prose-sm text-gray-600 ">
+                    <p className="whitespace-pre-wrap leading-relaxed text-lg">{selectedRetreat.description}</p>
                   </div>
                 </div>
 
@@ -199,7 +199,7 @@ export default function RetreatsPage() {
                   {/* Enhanced Form */}
                   <div className="p-6 md:p-10 flex-1 flex flex-col pb-12">
                     <h3 className="text-xl font-bold text-gray-900 mb-2">Apply for a Seat</h3>
-                    <p className="text-xs text-gray-500 font-medium mb-6 leading-relaxed">
+                    <p className=" text-gray-500 font-medium mb-6 leading-relaxed text-lg">
                       Your application will be reviewed. If accepted, pricing and secure Razorpay links will unlock in your dashboard.
                     </p>
 
@@ -207,30 +207,30 @@ export default function RetreatsPage() {
                       
                       <div className="grid grid-cols-2 gap-4">
                         <label className="block">
-                          <span className="text-xs font-bold text-gray-500 ml-1">Full Name *</span>
+                          <span className="text-lg font-bold text-gray-500 ml-1 ">Full Name *</span>
                           <input className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" placeholder="Your Name" value={name} onChange={e => setName(e.target.value)} />
                         </label>
                         <label className="block">
-                          <span className="text-xs font-bold text-gray-500 ml-1">Age *</span>
+                          <span className="text-lg font-bold text-gray-500 ml-1">Age *</span>
                           <input type="number" className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" placeholder="Your Age" value={age} onChange={e => setAge(e.target.value)} />
                         </label>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <label className="block">
-                          <span className="text-xs font-bold text-gray-500 ml-1">Registered Account Email *</span>
+                          <span className="text-lg font-bold text-gray-500 ml-1">Registered Account Email *</span>
                           <div className="w-full p-3 mt-1 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed overflow-hidden text-ellipsis">
                             {dbUser?.email || "Log in to apply"}
                           </div>
                         </label>
                         <label className="block">
-                          <span className="text-xs font-bold text-gray-500 ml-1">WhatsApp Number *</span>
+                          <span className="text-lg font-bold text-gray-500 ml-1">WhatsApp Number *</span>
                           <input className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" placeholder="Phone Number" value={phone} onChange={e => setPhone(e.target.value)} />
                         </label>
                       </div>
 
                       <label className="block">
-                        <span className="text-xs font-bold text-gray-500 ml-1">Are you a member of SiA? *</span>
+                        <span className="text-lg font-bold text-gray-500 ml-1">Are you a member of SiA? *</span>
                         <select className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" value={isMember} onChange={e => setIsMember(e.target.value)}>
                           <option value="" disabled>- Select Option -</option>
                           <option value="Yes">Yes</option>
@@ -239,42 +239,42 @@ export default function RetreatsPage() {
                       </label>
 
                       <label className="block">
-                        <span className="text-xs font-bold text-gray-500 ml-1">Address *</span>
+                        <span className="text-lg font-bold text-gray-500 ml-1">Address *</span>
                         <textarea className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" rows={2} placeholder="Street Address" value={address} onChange={e => setAddress(e.target.value)} />
                       </label>
 
                       <div className="grid grid-cols-2 gap-4">
                         <label className="block">
-                          <span className="text-xs font-bold text-gray-500 ml-1">City *</span>
+                          <span className="text-lg font-bold text-gray-500 ml-1">City *</span>
                           <input className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" placeholder="City" value={city} onChange={e => setCity(e.target.value)} />
                         </label>
                         <label className="block">
-                          <span className="text-xs font-bold text-gray-500 ml-1">State / Province *</span>
+                          <span className="text-lg font-bold text-gray-500 ml-1">State / Province *</span>
                           <input className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" placeholder="State" value={state} onChange={e => setState(e.target.value)} />
                         </label>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <label className="block">
-                          <span className="text-xs font-bold text-gray-500 ml-1">Country *</span>
+                          <span className="text-lg font-bold text-gray-500 ml-1">Country *</span>
                           <select className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" value={country} onChange={e => setCountry(e.target.value)}>
                             <option value="" disabled>- Select Country -</option>
                             {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </label>
                         <label className="block">
-                          <span className="text-xs font-bold text-gray-500 ml-1">Zip / Postal Code *</span>
+                          <span className="text-lg font-bold text-gray-500 ml-1">Zip / Postal Code *</span>
                           <input className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" placeholder="Zip Code" value={zip} onChange={e => setZip(e.target.value)} />
                         </label>
                       </div>
 
                       <label className="block">
-                        <span className="text-xs font-bold text-gray-500 ml-1">What is your current spiritual practice? *</span>
+                        <span className="text-lg font-bold text-gray-500 ml-1">What is your current spiritual practice? *</span>
                         <textarea className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all" rows={3} placeholder="Describe your practice..." value={spiritualPractice} onChange={e => setSpiritualPractice(e.target.value)} />
                       </label>
 
                       <label className="block">
-                        <span className="text-xs font-bold text-gray-500 ml-1">How familiar are you with SHIFTING INTO AWARENESS? *</span>
+                        <span className="text-lg font-bold text-gray-500 ml-1">How familiar are you with SHIFTING INTO AWARENESS? *</span>
                         <select className="w-full p-3 mt-1 border border-gray-200 rounded-xl focus:outline-none focus:border-[#600694] focus:ring-1 focus:ring-[#600694] transition-all text-sm" value={familiarity} onChange={e => setFamiliarity(e.target.value)}>
                           <option value="" disabled>- Select Option -</option>
                           <option value="I am aware of the practices on Shifting Into Awareness">I am aware of the practices on Shifting Into Awareness</option>
@@ -288,12 +288,12 @@ export default function RetreatsPage() {
                       <div className="pt-2 space-y-3">
                         <label className="flex items-start gap-3 cursor-pointer">
                           <input type="checkbox" className="mt-1 w-4 h-4 accent-[#600694] shrink-0" checked={agreedToMembership} onChange={e => setAgreedToMembership(e.target.checked)} />
-                          <span className="text-xs text-gray-600 leading-tight">If I am new to SiA, I agree that I will need to atleast take the basic membership *</span>
+                          <span className="text-lg text-gray-600 leading-tight">If I am new to SiA, I agree that I will need to atleast take the basic membership *</span>
                         </label>
 
                         <label className="flex items-start gap-3 cursor-pointer">
                           <input type="checkbox" className="mt-1 w-4 h-4 accent-[#600694] shrink-0" checked={agreedToAccuracy} onChange={e => setAgreedToAccuracy(e.target.checked)} />
-                          <span className="text-xs text-gray-600 leading-tight">I agree that all details provided above are correct and if found incorrect, my application can be rejected and membership cancelled *</span>
+                          <span className="text-lg text-gray-600 leading-tight">I agree that all details provided above are correct and if found incorrect, my application can be rejected and membership cancelled *</span>
                         </label>
                       </div>
 

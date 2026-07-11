@@ -219,45 +219,45 @@ export default function JoinPage() {
             className="lg:col-span-7 bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-[#4B1D52]/10 lg:sticky lg:top-8"
           >
             <form onSubmit={handleSubmit} className="space-y-6 text-foreground">
-              <p className="text-sm text-red-500 font-medium mb-8">Fields marked with an * are required</p>
+              <p className="text-lg text-red-500 font-medium mb-8">Fields marked with an * are required</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Name */}
                 <motion.div variants={fadeUp}>
-                  <label className="block text-sm font-semibold text-[#4B1D52] mb-2">Name *</label>
+                  <label className="block text-lg font-semibold text-[#4B1D52] mb-2">Name *</label>
                   <input type="text" name="name" required className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all" />
                 </motion.div>
 
                 {/* Age */}
                 <motion.div variants={fadeUp}>
-                  <label className="block text-sm font-semibold text-[#4B1D52] mb-2">Age *</label>
+                  <label className="block text-lg font-semibold text-[#4B1D52] mb-2">Age *</label>
                   <input type="number" name="age" required className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all" />
                 </motion.div>
               </div>
 
               {/* Email */}
               <motion.div variants={fadeUp}>
-                <label className="block text-sm font-semibold text-[#4B1D52] mb-2">Email *</label>
+                <label className="block text-lg font-semibold text-[#4B1D52] mb-2">Email *</label>
                 <input type="email" name="email" required className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all" />
               </motion.div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* City */}
                 <motion.div variants={fadeUp}>
-                  <label className="block text-sm font-semibold text-[#4B1D52] mb-2">City *</label>
+                  <label className="block text-lg font-semibold text-[#4B1D52] mb-2">City *</label>
                   <input type="text" name="city" required className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all" />
                 </motion.div>
 
                 {/* State */}
                 <motion.div variants={fadeUp}>
-                  <label className="block text-sm font-semibold text-[#4B1D52] mb-2">State *</label>
+                  <label className="block text-lg font-semibold text-[#4B1D52] mb-2">State *</label>
                   <input type="text" name="state" required className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all" />
                 </motion.div>
               </div>
 
               {/* Country */}
               <motion.div variants={fadeUp}>
-                <label className="block text-sm font-semibold text-[#4B1D52] mb-2">Country *</label>
+                <label className="block text-lg font-semibold text-[#4B1D52] mb-2">Country *</label>
                 <select name="country" required className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all appearance-none cursor-pointer">
                   <option value="">- Select Country -</option>
                   {countries.map((c) => (
@@ -268,20 +268,20 @@ export default function JoinPage() {
 
               {/* WhatsApp Phone */}
               <motion.div variants={fadeUp}>
-                <label className="block text-sm font-semibold text-[#4B1D52] mb-1">WhatsApp Number *</label>
-                <p className="text-xs text-muted-foreground mb-3">Your number is kept confidential and never added to any open groups. Please type your number along with your country code.</p>
+                <label className="block text-lg font-semibold text-[#4B1D52] mb-1">WhatsApp Number *</label>
+                <p className="text-lg text-muted-foreground mb-3">Your number is kept confidential and never added to any open groups. Please type your number along with your country code.</p>
                 <input type="tel" name="whatsapp" required placeholder="+1 234 567 8900" className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all" />
               </motion.div>
 
               {/* Spiritual Practice */}
               <motion.div variants={fadeUp}>
-                <label className="block text-sm font-semibold text-[#4B1D52] mb-2">What is your current spiritual practice? *</label>
+                <label className="block text-lg font-semibold text-[#4B1D52] mb-2">What is your current spiritual practice? *</label>
                 <textarea name="spiritual_practice" rows={3} required className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all resize-none"></textarea>
               </motion.div>
 
               {/* Source Dropdown */}
               <motion.div variants={fadeUp}>
-                <label className="block text-sm font-semibold text-[#4B1D52] mb-2">How did you reach here? *</label>
+                <label className="block text-lg font-semibold text-[#4B1D52] mb-2">How did you reach here? *</label>
                 <select name="source" required className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all appearance-none cursor-pointer">
                   <option value="">- Select Option -</option>
                   {sourceOptions.map((opt) => (
@@ -292,8 +292,8 @@ export default function JoinPage() {
 
               {/* Agreement Radio */}
               <motion.div variants={fadeUp} className="space-y-4 pt-4 border-t border-gray-100">
-                <label className="block text-sm font-semibold text-[#4B1D52]">Agreement *</label>
-                <p className="text-sm text-muted-foreground bg-[#F7F3FA] p-4 rounded-xl border border-[#4B1D52]/10 leading-relaxed">
+                <label className="block text-lg font-semibold text-[#4B1D52]">Agreement *</label>
+                <p className="text-lg text-muted-foreground bg-[#F7F3FA] p-4 rounded-xl border border-[#4B1D52]/10 leading-relaxed">
                   I understand that to become a member I would need to do the basic course, only after which I would become eligible to attend the daily satsangs, meditations, practices and clarity sessions. Also I understand that from May 2026 there would be a monthly membership fee, which would give me access to unlimited webinars, followup sessions, scriptural teachings, and practices for the entire month.
                 </p>
                 
@@ -311,7 +311,7 @@ export default function JoinPage() {
 
               {/* Message */}
               <motion.div variants={fadeUp}>
-                <label className="block text-sm font-semibold text-[#4B1D52] mb-2">Message (Optional)</label>
+                <label className="block text-lg font-semibold text-[#4B1D52] mb-2">Message (Optional)</label>
                 <textarea name="message" rows={4} className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-[#F7F3FA]/50 focus:bg-white focus:border-[#4B1D52] focus:ring-1 focus:ring-[#4B1D52] outline-none transition-all resize-none"></textarea>
               </motion.div>
 

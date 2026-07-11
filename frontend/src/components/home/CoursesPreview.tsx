@@ -2,8 +2,7 @@
     import { Link, useNavigate } from "react-router-dom";
     import { ShoppingCart, Loader2, ArrowRight, X, PlayCircle, CheckCircle, Infinity, Smartphone } from "lucide-react";
     import { motion, AnimatePresence } from "framer-motion";
-    import scriptureStudy from "@/assets/scripture-study.jpg";
-    import retreatMountain from "@/assets/retreat-mountain.jpg";
+   
     import { useCart } from "@/components/common/CartContext";
     import { useRegionalPricing } from "@/hooks/useRegionalPricing"; 
     import { api } from "@/lib/api";

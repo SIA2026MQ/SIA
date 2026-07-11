@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { CheckCircle2, Play } from "lucide-react";
-import standing_J from "@/assets/standing_J.webp"; // Example image
-import  what_we_do from "@/assets/WhatWeDo.jpeg"; // Example image
+
 
 // --- Animation Variants ---
 const staggerContainer = {

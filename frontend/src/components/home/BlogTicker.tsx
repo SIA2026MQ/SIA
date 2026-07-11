@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import lotusDawn from "@/assets/lotus-dawn.jpg";
-import heroMandala from "@/assets/hero-mandala.jpg";
+
 
 export function BlogTicker() {
   const [blogs, setBlogs] = useState<any[]>([]);

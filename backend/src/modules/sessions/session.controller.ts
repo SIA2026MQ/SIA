@@ -262,7 +262,7 @@ export const toggleSessionStatus = async (req: Request, res: Response): Promise<
 };
 
 // -----------------------------------------------------------------------------
-// [PUBLIC/STUDENT] Get Upcoming Schedules
+// [PUBLIC/STUDENT] Get Upcoming Eventss
 // -----------------------------------------------------------------------------
 export const getSchedules = async (req: Request, res: Response): Promise<void> => {
   try {
